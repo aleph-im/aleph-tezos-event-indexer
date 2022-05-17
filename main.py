@@ -45,7 +45,7 @@ def get_event_of(res, contract):
                             print(parse_event(event_bytes))
                             break
 
-def fetchBlocks(block_id = "head", limit = 10, until_block_level = 545000):
+def fetch_blocks(block_id = "head", limit = 10, until_block_level = 545000):
     if limit == 0:
         print('Limit reached, exit...')
         return
@@ -61,9 +61,9 @@ def fetchBlocks(block_id = "head", limit = 10, until_block_level = 545000):
         return
 
     limit = limit - 1
-    fetchBlocks(res["hash"] + "~1", limit, until_block_level)
+    fetch_blocks(res["hash"] + "~1", limit, until_block_level)
 
 
-#fetchBlocks("head", 5000, 545848)
+#fetch_blocks("head", 5000, 545848)
 # start fetching from BMMLTBM71hFduyCrgvztrpJFVdTw35MkXRjxEwEEa7GM81Ps64q
-fetchBlocks("BMMLTBM71hFduyCrgvztrpJFVdTw35MkXRjxEwEEa7GM81Ps64q~1", 5000, 545848)
+fetch_blocks("BMMLTBM71hFduyCrgvztrpJFVdTw35MkXRjxEwEEa7GM81Ps64q~1", 5000, 545848)

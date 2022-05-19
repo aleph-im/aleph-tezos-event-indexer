@@ -1,2 +1,11 @@
 pytezos
-requests
+aiohttp
+asyncio
+graphene
+graphql-core
+plyvel
+pydantic
+python-dotenv
+fastapi
+uvicorn
+starlette-graphene3

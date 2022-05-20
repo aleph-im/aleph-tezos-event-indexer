@@ -45,7 +45,8 @@ class TezosClient:
                                 "operation_hash": operation["hash"],
                                 "source": internal_tx["source"],
                                 "destination": internal_tx["destination"],
-                                "event": _event
+                                "event": _event,
+                                "block": block
                             })
 
         return events

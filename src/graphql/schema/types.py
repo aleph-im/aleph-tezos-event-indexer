@@ -12,3 +12,14 @@ class Events(ObjectType):
     source = String()
     destination = String()
     event = GenericScalar()
+    block = GenericScalar()
+
+    # load block if requested
+    def resolve_block(data, info):
+        block = data["block"](data["block_hash"])
+        if block:
+            return json.loads(block)
+
+class IndexStatus(ObjectType):
+    oldest_block = String()
+    recent_block = String()

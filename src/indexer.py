@@ -12,7 +12,6 @@ class Indexer:
         self.batch_size = config.batch_size
         self.pending_blocks = 0
         self.current_head = None
-        self.until_block = None
         self.fetcher_state = {"recent_block": None, "oldest_block": None}
 
     async def run(self):
@@ -43,26 +42,34 @@ class Indexer:
 
         #await asyncio.gather(*tasks)
 
-        while self.pending_blocks > 0:
+        if self.pending_blocks > 0:
             await self.forward_run(self.current_head)
 
+        # retore blocks count to fetch for backward
         self.pending_blocks = self.concurrent_job*self.batch_size
-        await self.backward_run(self.fetcher_state["oldest_block"])
+
+        if self.fetcher_state["oldest_block"] is not None:
+            oldest_level = self.fetcher_state["oldest_block"]["header"]["level"]
+            if oldest_level < self.pending_blocks:
+                self.pending_blocks = oldest_level
+
+        
+        if self.pending_blocks > 0:
+            await self.backward_run(self.fetcher_state["oldest_block"])
 
 
 
     async def batch_run(self, from_block):
-        print("fetching", self.concurrent_job, "blocks starting from", from_block["hash"], "=>", from_block["header"]["level"])
+        print("fetching", self.pending_blocks, "blocks starting from", from_block["hash"], "=>", from_block["header"]["level"])
         def _fetch_blocks(self, limit):
+            print("limit", limit, self.pending_blocks)
             if self.pending_blocks < limit:
                 limit = self.pending_blocks
 
-            print("limit", limit, self.pending_blocks)
             for index in range(1, limit):
                 if self.pending_blocks == 0:
                     break
 
-                #cursor_id = from_block["hash"] + "~" + str(self.pending_blocks - index)
                 cursor_id = "{}~{}".format(from_block["hash"], index)
                 print("fetching block", cursor_id)
                 yield self.client.get_block(cursor_id)
@@ -72,7 +79,7 @@ class Indexer:
 
         return await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
 
-    async def fetch_blocks(self, from_block, direction="forward", until_block=None):
+    async def fetch_blocks(self, from_block, direction="forward"):
         blocks = await self.batch_run(from_block)
         if direction == "forward":
             blocks.insert(0, from_block)
@@ -86,7 +93,7 @@ class Indexer:
 
     async def forward_run(self, from_block):
         print("forward_fetch")
-        blocks = await self.fetch_blocks(from_block, until_block=self.fetcher_state["recent_block"])
+        blocks = await self.fetch_blocks(from_block)
         recent_block=blocks[0]
 
         # for first run
@@ -97,8 +104,9 @@ class Indexer:
 
     async def backward_run(self, from_block):
         print("backward_fetch")
-        blocks = await self.fetch_blocks(from_block)
-        self.update_fetcher_state(oldest_block=blocks[-1])
+        blocks = await self.fetch_blocks(from_block, "backward")
+        if len(blocks) > 0:
+            self.update_fetcher_state(oldest_block=blocks[-1])
 
     def get_events(self, blocks):
         for block in blocks:

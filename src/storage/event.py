@@ -5,6 +5,7 @@ import itertools
 from ..config import config
 
 eventDB = plyvel.DB(config.db_folder + '/event', create_if_missing=True)
+blockDB = plyvel.DB(config.db_folder + '/block', create_if_missing=True)
 eventIndexDB = plyvel.DB(config.db_folder + '/event_index', create_if_missing=True)
 fetcherStateDB = plyvel.DB(config.db_folder + '/fetcher_state', create_if_missing=True)
 
@@ -29,11 +30,23 @@ class eventStorage:
 
     @staticmethod
     async def write_batch(events):
+        blocks=[]
         with eventDB.write_batch() as wb:
             for event in events:
+                blocks.append(event["block"])
+                del event["block"]
                 key = eventStorage.build_event_key(event)
                 wb.put(key.encode(), json.dumps(event).encode())
                 eventStorage.write_index(key, event)
+        wb.write()
+        eventStorage.write_blocks(blocks)
+
+    @staticmethod
+    async def write_blocks(blocks):
+        with blockDB.write_batch() as wb:
+            for block in blocks:
+                key = block["hash"]
+                wb.put(key.encode(), json.dumps(block).encode())
         wb.write()
 
     @staticmethod
@@ -51,11 +64,16 @@ class eventStorage:
             
 
     @staticmethod
-    def get_events(reverse=True, limit=100, skip=0):
+    def get_events(reverse=True, limit=100, skip=0, index_address=None):
         events = []
         items = eventDB.iterator(include_key=False, reverse=reverse)
         for item in enumerate(itertools.islice(items, skip, (limit+skip))):
-            events.append(json.loads(item[1].decode()))
+            event = json.loads(item[1].decode())
+            event["block"] = lambda block_hash: blockDB.get(block_hash.encode())
+            #if with_block:
+            #    block = blockDB.get(event["hash"])
+            #    event["block"] = json.loads(block)
+            events.append(event)
 
         return events
 

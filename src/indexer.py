@@ -8,6 +8,7 @@ class Indexer:
     def __init__(self, client, storage, config):
         self.client = client
         self.well_contract = config.well_contract
+        self.until_block = config.until_block
         self.storage = storage
         self.concurrent_job = config.concurrent_job
         self.batch_size = config.batch_size
@@ -51,6 +52,9 @@ class Indexer:
 
         if self.fetcher_state["oldest_block"] is not None:
             oldest_level = self.fetcher_state["oldest_block"]["header"]["level"]
+            if oldest_level < self.until_block:
+                return
+
             if oldest_level < self.pending_blocks:
                 self.pending_blocks = oldest_level
 

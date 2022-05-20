@@ -28,7 +28,7 @@ class TezosClient:
         for operationsArr in block["operations"]:
             for operation in operationsArr:
                 for tx in operation['contents']:
-                    if 'internal_operation_results' in tx['metadata']:
+                    if 'metadata' in tx and 'internal_operation_results' in tx['metadata']:
                         for internal_tx in tx['metadata']['internal_operation_results']:
                             if 'destination' in internal_tx and internal_tx['destination'] != well_contract:
                                 continue

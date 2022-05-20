@@ -23,13 +23,15 @@ class TezosClient:
         event['_event'] = data_parser.unpack(event['_event']).to_python_object()
         return event
 
-    async def get_events(self, block):
+    async def get_events(self, block, well_contract):
         events = []
         for operationsArr in block["operations"]:
             for operation in operationsArr:
                 for tx in operation['contents']:
                     if 'internal_operation_results' in tx['metadata']:
                         for internal_tx in tx['metadata']['internal_operation_results']:
+                            if internal_tx['destination'] != well_contract:
+                                continue
                             if 'parameters' not in internal_tx:
                                 continue
                             if internal_tx['parameters']['entrypoint'] != 'event':

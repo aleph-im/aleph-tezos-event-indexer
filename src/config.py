@@ -2,7 +2,7 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     db_folder: str = "/data/events"
-    targets: str = "KT1HWM5bNaTPvDjj1f8GxV3F6AXFj9mBFePt"
+    well_contract: str = "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw"
     rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"
     port: int = 8080
     concurrent_job: int = 2

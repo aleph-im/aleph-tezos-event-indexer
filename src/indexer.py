@@ -7,6 +7,7 @@ from .utils.common import gather_with_concurrency
 class Indexer:
     def __init__(self, client, storage, config):
         self.client = client
+        self.well_contract = config.well_contract
         self.storage = storage
         self.concurrent_job = config.concurrent_job
         self.batch_size = config.batch_size
@@ -110,7 +111,7 @@ class Indexer:
 
     def get_events(self, blocks):
         for block in blocks:
-            yield self.client.get_events(block)
+            yield self.client.get_events(block, self.well_contract)
 
     async def index(self, events):
         if len(events) > 0:

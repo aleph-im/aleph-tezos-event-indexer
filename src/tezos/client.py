@@ -1,4 +1,5 @@
 import aiohttp
+import time
 from pytezos.michelson.types import MichelsonType
 from pytezos.michelson.parse import michelson_to_micheline
 
@@ -8,11 +9,25 @@ class TezosClient:
         self.endpoint = config.rpc_endpoint
         self.event_parser = MichelsonType.match(michelson_to_micheline('pair (string %_kind) (pair (string %_type) (bytes %_event))'))
 
+    async def get_json(self, url: str, status_codes=(200), retry = 10):
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url) as resp:
+                    if resp.status not in status_codes:
+                        raise Exception("Error: {}".format(resp.status))
+                    return await resp.json()
+            except Exception as err:
+                print("got", err, "Cool down for 10s...")
+                time.sleep(10)
+                retry -= 1
+                if retry == 0:
+                    print("Max retry reached")
+                    raise Exception(err)
+                return await self.get_json(url, status_codes=status_codes, retry=retry)
+
     async def get_block(self, block_id):
-        async with  aiohttp.ClientSession() as session:
             url = self.endpoint + "/chains/main/blocks/{}".format(block_id)
-            async with session.get(url) as resp:
-                return await resp.json()
+            return await self.get_json(url)
 
     def parse_event(self, event_bytes):
         # First unpacking to get the kind, the type and the data bytes of the event

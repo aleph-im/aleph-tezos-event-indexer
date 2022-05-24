@@ -26,6 +26,8 @@ class Indexer:
             head = await self.client.get_block('head')
             self.pending_blocks = head["header"]["level"] - self.fetcher_state["recent_block"]["header"]["level"]
             self.current_head = head
+            if self.pending_blocks > self.batch_size:
+                self.pending_blocks = self.batch_size
 
         # default pending blocks, when database is empty
         if self.fetcher_state["recent_block"] is None and self.pending_blocks == 0:

@@ -11,7 +11,9 @@ class Events(ObjectType):
     operation_hash = String()
     source = String()
     destination = String()
-    event = GenericScalar()
+    type = String()
+    format = String()
+    metadata = GenericScalar()
     block = GenericScalar()
 
     # load block if requested

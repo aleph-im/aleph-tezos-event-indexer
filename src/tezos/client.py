@@ -7,7 +7,7 @@ import traceback
 class TezosClient:
     def __init__(self, config):
         self.endpoint = config.rpc_endpoint
-        self.event_parser = MichelsonType.match(michelson_to_micheline('pair (string %_kind) (pair (string %_type) (bytes %_event))'))
+        self.event_parser = MichelsonType.match(michelson_to_micheline('pair (string %type) (pair (string %format) (bytes %metadata))'))
 
     async def get_json(self, url: str, status_codes=[200], retry = 10):
         async with aiohttp.ClientSession() as session:
@@ -35,8 +35,8 @@ class TezosClient:
         event = self.event_parser.unpack(bytes.fromhex(event_bytes)).to_python_object()
 
         # Second unpacking to get the data from the bytes
-        data_parser = MichelsonType.match(michelson_to_micheline(event['_type']))
-        event['_event'] = data_parser.unpack(event['_event']).to_python_object()
+        data_parser = MichelsonType.match(michelson_to_micheline(event['format']))
+        event['metadata'] = data_parser.unpack(event['metadata']).to_python_object()
         return event
 
     async def get_events(self, block, well_contract):
@@ -57,14 +57,13 @@ class TezosClient:
                             event_bytes = internal_tx['parameters']['value']['bytes']
                             print(block["hash"], operation["hash"], event_bytes)
                             _event = self.parse_event(event_bytes)
-                            events.append({
+                            events.append({**{
                                 "block_hash": block['hash'],
                                 "block_level": block["header"]["level"],
                                 "operation_hash": operation["hash"],
                                 "source": internal_tx["source"],
                                 "destination": internal_tx["destination"],
-                                "event": _event,
                                 "block": block
-                            })
+                            },**_event})
 
         return events

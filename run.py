@@ -1,7 +1,7 @@
 import os
 import sys
 import asyncio
-import uvicorn
+import threading
 from src.indexer import Indexer
 from src.config import config
 from src.graphql.server import app
@@ -47,10 +47,15 @@ def start(loop, tasks):
         asyncio.gather(*tasks)
     )
 
-# start with uvicorn commandline
-if __name__ == "run":
+def background_run():
     loop = asyncio.new_event_loop()
     start(loop, [prepare_intervals()])
+
+# start with uvicorn commandline
+if __name__ == "run":
+    # start background run
+    timer = threading.Timer(1.0, background_run)
+    timer.start()
 
 # start from python commandline
 if __name__ == "__main__":

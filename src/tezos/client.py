@@ -2,14 +2,14 @@ import aiohttp
 import time
 from pytezos.michelson.types import MichelsonType
 from pytezos.michelson.parse import michelson_to_micheline
-
+import traceback
 
 class TezosClient:
     def __init__(self, config):
         self.endpoint = config.rpc_endpoint
         self.event_parser = MichelsonType.match(michelson_to_micheline('pair (string %_kind) (pair (string %_type) (bytes %_event))'))
 
-    async def get_json(self, url: str, status_codes=(200), retry = 10):
+    async def get_json(self, url: str, status_codes=[200], retry = 10):
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(url) as resp:
@@ -18,6 +18,7 @@ class TezosClient:
                     return await resp.json()
             except Exception as err:
                 print("got", err, "Cool down for 10s...")
+                traceback.print_exc()
                 time.sleep(10)
                 retry -= 1
                 if retry == 0:

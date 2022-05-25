@@ -66,6 +66,19 @@ class eventStorage:
     @staticmethod
     def get_events(reverse=True, limit=100, skip=0, index_address=None):
         events = []
+        start = None
+        stop = None
+
+        if index_address is not None:
+            start = "{}_{}".format(index_address, "0")
+            stop = "{}_{}".format(index_address, "~")
+            items = eventIndexDB.iterator(include_key=False, start=start.encode(), stop=stop.encode(), include_start=True, include_stop=True)
+            for item in enumerate(itertools.islice(items, skip, (limit+skip))):
+                events.append(json.loads(eventDB.get(item[1]).decode()))
+
+            #@TODO fix reverse
+            return events
+
         items = eventDB.iterator(include_key=False, reverse=reverse)
         for item in enumerate(itertools.islice(items, skip, (limit+skip))):
             event = json.loads(item[1].decode())

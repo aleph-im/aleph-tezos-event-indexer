@@ -16,6 +16,7 @@ class Events(ObjectType):
     metadata = GenericScalar()
     block = GenericScalar()
     verified = Boolean()
+    nonce = Int()
 
     # load block if requested
     def resolve_block(data, info):

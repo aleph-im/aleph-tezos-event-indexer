@@ -13,7 +13,7 @@ fetcherStateDB = plyvel.DB(config.db_folder + '/fetcher_state', create_if_missin
 class eventStorage:
     @staticmethod
     def build_event_key(event):
-        return f"{str(event['block_level']).zfill(11)}_{event['block_hash']}_{event['operation_hash']}"
+        return f"{str(event['block_level']).zfill(11)}_{event['block_hash']}_{event['operation_hash']}_{event['nonce']}"
 
     @staticmethod
     def search_event(q):

@@ -58,7 +58,7 @@ class eventStorage:
     @staticmethod
     def write_index(key, event):
         with eventIndexDB.write_batch() as wb:
-            for index_key in [event[index] for index in ["source", "destination", "operation_hash"]]:
+            for index_key in [event[index] for index in ["source", "destination", "operation_hash", "block_hash"]]:
                 wb.put(f"{index_key}_{key}".encode(), key.encode())
             wb.write()
             

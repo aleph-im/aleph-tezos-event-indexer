@@ -1,4 +1,4 @@
-from graphene import ObjectType, String, Float, Int, List, JSONString, Field
+from graphene import ObjectType, String, Float, Int, List, JSONString, Field, Boolean
 from graphene.types.generic import GenericScalar
 import json
 
@@ -15,6 +15,7 @@ class Events(ObjectType):
     format = String()
     metadata = GenericScalar()
     block = GenericScalar()
+    verified = Boolean()
 
     # load block if requested
     def resolve_block(data, info):

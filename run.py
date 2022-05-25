@@ -59,6 +59,7 @@ if __name__ == "run":
 
 # start from python commandline
 if __name__ == "__main__":
+    import uvicorn
     loop = asyncio.new_event_loop()
     _config = uvicorn.Config(app=app, loop=loop, host="0.0.0.0", port=config.port)
     server = uvicorn.Server(_config)

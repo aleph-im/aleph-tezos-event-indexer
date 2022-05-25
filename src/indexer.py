@@ -2,11 +2,13 @@ import asyncio
 import aiohttp
 import itertools
 import time
+import threading
 from .utils.common import gather_with_concurrency
 
 class Indexer:
     def __init__(self, client, storage, config):
         self.client = client
+        self.config = config
         self.well_contract = config.well_contract
         self.until_block = config.until_block
         self.storage = storage
@@ -32,8 +34,9 @@ class Indexer:
         # default pending blocks, when database is empty
         if self.fetcher_state["recent_block"] is None and self.pending_blocks == 0:
             head = await self.client.get_block('head')
-            self.pending_blocks = self.concurrent_job*self.batch_size
-            self.current_head = await self.client.get_block('head')
+            #self.pending_blocks = self.concurrent_job*self.batch_size
+            self.pending_blocks = self.batch_size
+            self.current_head = head
 
 
         # parallel forward and backward
@@ -50,7 +53,8 @@ class Indexer:
             await self.forward_run(self.current_head)
 
         # retore blocks count to fetch for backward
-        self.pending_blocks = self.concurrent_job*self.batch_size
+        #self.pending_blocks = self.concurrent_job*self.batch_size
+        self.pending_blocks = self.batch_size
 
         if self.fetcher_state["oldest_block"] is not None:
             oldest_level = self.fetcher_state["oldest_block"]["header"]["level"]
@@ -94,7 +98,7 @@ class Indexer:
         if len(blocks) > 0:
             events = await gather_with_concurrency(len(blocks), *self.get_events(blocks))
             events = list(itertools.chain.from_iterable(events))
-            print(len(events), "events found", events)
+            print(len(events), "events found")
             await self.index(events)
         return blocks
 
@@ -121,8 +125,10 @@ class Indexer:
 
     async def index(self, events):
         if len(events) > 0:
-            await gather_with_concurrency(len(events), *self.storage.save_events(events))
+            #await gather_with_concurrency(len(events), *self.storage.save_events(events))
+            await self.storage.save_events(events)
             print(len(events), "saved")
+            check_task = asyncio.create_task(self.check_events(events))
 
     def update_fetcher_state(self, recent_block = None, oldest_block = None):
         if recent_block is not None:
@@ -131,4 +137,25 @@ class Indexer:
             self.fetcher_state["oldest_block"] = oldest_block
 
         self.storage.update_fetcher_state(recent_block=recent_block, oldest_block=oldest_block)
-            
+
+    async def check_events(self, events):
+        for event in events:
+            verified = False
+            operation = self.client.get_operation_from_block(event["block"], event["operation_hash"])
+            # pass 1 internal check
+            if operation is not None:
+                is_valid = self.client.check_operation(operation, event["operation_hash"])
+                if is_valid == False:
+                    self.storage.untrust_event(event)
+                    continue
+            #print("operation", event["operation_hash"], "pass 1")
+
+            # pass 2 compare and check with trusted endpoint
+            trusted_operation = await self.client.get_operation(event["block_hash"], event["operation_hash"], endpoint=self.config.trusted_rpc_endpoint)
+            if trusted_operation is not None:
+                is_valid = self.client.check_operation(trusted_operation, event["operation_hash"])
+                if is_valid == False:
+                    self.storage.untrust_event(event)
+                    continue
+            #print("operation", event["operation_hash"], "pass 2")
+            self.storage.trust_event(event)

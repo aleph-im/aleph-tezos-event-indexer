@@ -2,6 +2,9 @@ import aiohttp
 import time
 from pytezos.michelson.types import MichelsonType
 from pytezos.michelson.parse import michelson_to_micheline
+from pytezos.operation.group import OperationGroup
+from pytezos import pytezos
+
 import traceback
 
 class TezosClient:
@@ -26,9 +29,23 @@ class TezosClient:
                     raise Exception(err)
                 return await self.get_json(url, status_codes=status_codes, retry=retry)
 
-    async def get_block(self, block_id):
-            url = self.endpoint + "/chains/main/blocks/{}".format(block_id)
-            return await self.get_json(url)
+    async def get_block(self, block_id, endpoint=None):
+        endpoint = endpoint or self.endpoint
+        url = endpoint + "/chains/main/blocks/{}".format(block_id)
+        return await self.get_json(url)
+
+    def get_operation_from_block(self, block, operation_hash):
+        for operationsArr in block["operations"]:
+            for operation in operationsArr:
+                if operation["hash"] == operation_hash:
+                    return operation
+        return None
+
+    async def get_operation(self, block_id, operation_hash, endpoint=None):
+        endpoint = endpoint or self.endpoint
+        url = endpoint + "/chains/main/blocks/{}".format(block_id)
+        block = await self.get_json(url)
+        return self.get_operation_from_block(block, operation_hash)
 
     def parse_event(self, event_bytes):
         # First unpacking to get the kind, the type and the data bytes of the event
@@ -54,16 +71,24 @@ class TezosClient:
                                 continue
                             if 'bytes' not in internal_tx['parameters']['value']:
                                 continue
+
                             event_bytes = internal_tx['parameters']['value']['bytes']
-                            print(block["hash"], operation["hash"], event_bytes)
                             _event = self.parse_event(event_bytes)
                             events.append({**{
+                                "nonce": internal_tx["nonce"],
                                 "block_hash": block['hash'],
                                 "block_level": block["header"]["level"],
                                 "operation_hash": operation["hash"],
                                 "source": internal_tx["source"],
                                 "destination": internal_tx["destination"],
-                                "block": block
+                                "block": block,
+                                "verified": False
                             },**_event})
 
         return events
+
+    def check_operation(self, operation, operation_hash):
+        operation["contents"][0]["metadata"]["internal_operation_results"][0]["destination"] = "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrzuo"
+        op = OperationGroup(protocol=operation["protocol"], branch=operation["branch"], chain_id=operation["chain_id"], contents=operation["contents"], signature=operation["signature"], context=pytezos)
+
+        return op.hash() == operation_hash

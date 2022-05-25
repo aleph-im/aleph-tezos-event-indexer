@@ -2,6 +2,7 @@ import asyncio
 import plyvel
 import json
 import itertools
+from copy import deepcopy
 from ..config import config
 
 eventDB = plyvel.DB(config.db_folder + '/event', create_if_missing=True)
@@ -30,16 +31,17 @@ class eventStorage:
 
     @staticmethod
     async def write_batch(events):
+        events_copy = deepcopy(events)
         blocks=[]
         with eventDB.write_batch() as wb:
-            for event in events:
+            for event in events_copy:
                 blocks.append(event["block"])
                 del event["block"]
                 key = eventStorage.build_event_key(event)
                 wb.put(key.encode(), json.dumps(event).encode())
                 eventStorage.write_index(key, event)
         wb.write()
-        eventStorage.write_blocks(blocks)
+        await eventStorage.write_blocks(blocks)
 
     @staticmethod
     async def write_blocks(blocks):
@@ -50,10 +52,8 @@ class eventStorage:
         wb.write()
 
     @staticmethod
-    def save_events(events):
-        loop = asyncio.get_event_loop()
-        write_task = loop.create_task(eventStorage.write_batch(events))
-        yield asyncio.wait([write_task])
+    async def save_events(events):
+        await eventStorage.write_batch(events)
 
     @staticmethod
     def write_index(key, event):
@@ -113,4 +113,22 @@ class eventStorage:
             fetcher_state["oldest_block"] = oldest_block
 
         fetcherStateDB.put('fetcher_state'.encode(), json.dumps(fetcher_state).encode())
-            
+
+    @staticmethod
+    def unstrust_event(event):
+        key = eventStorage.build_event_key(event)
+        ev = eventDB.get(key.encode())
+        if ev:
+            ev = json.loads(ev.decode())
+            ev["metadata"] = {"msg": "untrusted event"}
+            eventDB.put(key.encode(), json.dumps(ev).encode())
+
+    @staticmethod
+    def trust_event(event):
+        key = eventStorage.build_event_key(event)
+        ev = eventDB.get(key.encode())
+        if ev:
+            ev = json.loads(ev.decode())
+            ev["verified"] = True
+            eventDB.put(key.encode(), json.dumps(ev).encode())
+

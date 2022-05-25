@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     well_contract: str = "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw"
     until_block: int = 0
     rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"
+    trusted_rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"
     port: int = 8080
     concurrent_job: int = 2
     batch_size: int = 5

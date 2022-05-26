@@ -14,7 +14,7 @@ class Query(graphene.ObjectType):
     events = graphene.List(types.Events, limit=graphene.Int(default_value=100, description="max value = 1000"),
                            reverse=graphene.Boolean(default_value=True),
                            skip=graphene.Int(default_value=0),
-                           **{"type": graphene.String(default_value=None, description="Event type, ex: burn_event")},
+                           **{"type": graphene.String(default_value=None, description="Event type, ex: burn_event. The multi match % joker can be used.")},
                            source=graphene.String(default_value=None, description="Source address"),
                            destination=graphene.String(default_value=None, description="Destination address"),
                            operation_hash=graphene.String(default_value=None, description="Operation hash"),
@@ -44,6 +44,12 @@ class Query(graphene.ObjectType):
         if index_list_len < 2 and target_type is None:
             return events
 
+        # soft filter
+        #res_len = len(events)
+        # @TODO continue ieteration until reach limit
+        
+        search_from_start = False
+        search_from_end = False
         # filter if more than one criteria are provided
         idx_to_delete = []
         for idx, event in enumerate(events):
@@ -59,9 +65,29 @@ class Query(graphene.ObjectType):
             if block_hash is not None and block_hash != event["block_hash"]:
                 idx_to_delete.append(idx)
                 continue
-            if target_type is not None and target_type != event["type"]:
-                idx_to_delete.append(idx)
-                continue
+            if target_type is not None:
+                if target_type.find("%") == 0:
+                    target_type = target_type[1::]
+                    search_from_end = True
+                if target_type.find("%") > 0:
+                    target_type = target_type[:-1:]
+                    search_from_start = True
+
+                if search_from_end and search_from_start:
+                    if event["type"].find(target_type) == -1:
+                        idx_to_delete.append(idx)
+                    continue
+                elif search_from_end:
+                    if event["type"].endswith(target_type) is False:
+                        idx_to_delete.append(idx)
+                    continue
+                elif search_from_start:
+                    if event["type"].startswith(target_type) is False:
+                        idx_to_delete.append(idx)
+                    continue
+                elif target_type != event["type"]:
+                    idx_to_delete.append(idx)
+                    continue
 
         for idx in sorted(idx_to_delete, reverse=True):
             del events[idx]

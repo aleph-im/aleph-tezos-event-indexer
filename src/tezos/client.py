@@ -3,6 +3,7 @@ import time
 from pytezos.michelson.types import MichelsonType
 from pytezos.michelson.parse import michelson_to_micheline
 from pytezos.operation.group import OperationGroup
+from pytezos.michelson.types.core import unit
 from pytezos import pytezos
 
 import traceback
@@ -54,6 +55,8 @@ class TezosClient:
         # Second unpacking to get the data from the bytes
         data_parser = MichelsonType.match(michelson_to_micheline(event['format']))
         event['metadata'] = data_parser.unpack(event['metadata']).to_python_object()
+        if isinstance(event["metadata"], unit):
+            event['metadata'] = None
         return event
 
     async def get_events(self, block, well_contract):

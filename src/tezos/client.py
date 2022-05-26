@@ -79,6 +79,7 @@ class TezosClient:
                             _event = self.parse_event(event_bytes)
                             events.append({**{
                                 "nonce": internal_tx["nonce"],
+                                "timestamp": block["header"]["timestamp"],
                                 "block_hash": block['hash'],
                                 "block_level": block["header"]["level"],
                                 "operation_hash": operation["hash"],

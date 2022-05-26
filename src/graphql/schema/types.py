@@ -17,6 +17,7 @@ class Events(ObjectType):
     block = GenericScalar()
     verified = Boolean()
     nonce = Int()
+    timestamp = String()
 
     # load block if requested
     def resolve_block(data, info):

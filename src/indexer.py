@@ -26,10 +26,14 @@ class Indexer:
 
         if self.fetcher_state["recent_block"] is not None and self.pending_blocks == 0:
             head = await self.client.get_block('head')
-            self.pending_blocks = head["header"]["level"] - self.fetcher_state["recent_block"]["header"]["level"]
-            self.current_head = head
-            if self.pending_blocks > self.batch_size:
+
+            first_run = self.fetcher_state["oldest_block"] is None
+            if first_run:
                 self.pending_blocks = self.batch_size
+            else:
+                self.pending_blocks = head["header"]["level"] - self.fetcher_state["recent_block"]["header"]["level"]
+
+            self.current_head = head
 
         # default pending blocks, when database is empty
         if self.fetcher_state["recent_block"] is None and self.pending_blocks == 0:
@@ -59,6 +63,8 @@ class Indexer:
         if self.fetcher_state["oldest_block"] is not None:
             oldest_level = self.fetcher_state["oldest_block"]["header"]["level"]
             if oldest_level < self.until_block:
+                # reset counter for next run
+                self.pending_blocks = 0
                 return
 
             if oldest_level < self.pending_blocks:
@@ -68,7 +74,8 @@ class Indexer:
         if self.pending_blocks > 0:
             await self.backward_run(self.fetcher_state["oldest_block"])
 
-
+        # reset counter for next run
+        self.pending_blocks = 0
 
     async def batch_run(self, from_block):
         print("fetching", self.pending_blocks, "blocks starting from", from_block["hash"], "=>", from_block["header"]["level"])
@@ -84,9 +91,7 @@ class Indexer:
                 cursor_id = "{}~{}".format(from_block["hash"], index)
                 print("fetching block", cursor_id)
                 yield self.client.get_block(cursor_id)
-
-            # reduce cursor
-            self.pending_blocks -= limit
+                self.pending_blocks -= 1
 
         return await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
 

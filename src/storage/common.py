@@ -157,7 +157,6 @@ class AlephStorageInstance():
 
         if sid not in self.instance["subscriptions"]:
             r = requests.post(f"{self.instance['pubsub_server']}/subscribe", json=options)
-            print("r")
             if r.status_code == 200:
                 self.instance["subscriptions"].append(sid)
                 self.update({"subscriptions": self.instance["subscriptions"]})
@@ -172,8 +171,6 @@ class AlephStorageInstance():
             return self.db_instance[dbname]
 
     def on_db_event(self, dbname, event_name, *args, **kwargs):
-        print("on db", dbname, "on event",event_name)
-
         if event_name == "put":
            message = MessageModel(**{
                "dbname": dbname, "operation": event_name,
@@ -207,7 +204,8 @@ class Storage():
     def __getattr__(self, name):
         def wrapper(*args, **kwargs):
             # @TODO unblock
-            self.event_driver.on_db_event(self.dbname, name, *args, **kwargs)
+            if self.event_driver.get_mode() != "single":
+                self.event_driver.on_db_event(self.dbname, name, *args, **kwargs)
             return getattr(self.db, name)(*args, **kwargs)
         return wrapper
 

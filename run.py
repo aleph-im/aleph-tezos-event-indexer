@@ -45,8 +45,8 @@ async def start(loop, server = None):
     asyncio.set_event_loop(loop)
     tasks = []
     if server:
-        tasks.append(api_server)
         api_server = server.serve()
+        tasks.append(api_server)
 
     logger.info("initialize application")
     aleph_instance = await initialize_aleph_event_storage(app)

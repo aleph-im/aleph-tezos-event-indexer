@@ -4,11 +4,21 @@ import json
 import itertools
 from copy import deepcopy
 from ..config import config
+from .common import Storage
 
-eventDB = plyvel.DB(config.db_folder + '/event', create_if_missing=True)
-blockDB = plyvel.DB(config.db_folder + '/block', create_if_missing=True)
-eventIndexDB = plyvel.DB(config.db_folder + '/event_index', create_if_missing=True)
-fetcherStateDB = plyvel.DB(config.db_folder + '/fetcher_state', create_if_missing=True)
+async def initialize_db(alephStorageInstance):
+    global eventDB
+    eventDB = Storage(config.db_folder + '/event', create_if_missing=True,
+                             event_driver=alephStorageInstance, extra_options={"register": True})
+    global blockDB
+    blockDB = Storage(config.db_folder + '/block', create_if_missing=True,
+                             event_driver=alephStorageInstance, extra_options={"register": True})
+    global eventIndexDB
+    eventIndexDB = Storage(config.db_folder + '/event_index', create_if_missing=True,
+                             event_driver=alephStorageInstance, extra_options={"register": True})
+    global fetcherStateDB
+    fetcherStateDB = Storage(config.db_folder + '/fetcher_state', create_if_missing=True,
+                             event_driver=alephStorageInstance, extra_options={"register": True})
 
 class eventStorage:
     @staticmethod

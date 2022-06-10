@@ -9,8 +9,10 @@ class Settings(BaseSettings):
     port: int = 8080
     concurrent_job: int = 2
     batch_size: int = 5
+    pubsub: dict = None
 
     class Config:
         env_file = ".env"
+        env_file_encoding = 'utf-8'
 
 config = Settings()

@@ -72,10 +72,10 @@ class AlephStorageInstance():
         if event.message.operation == "put":
             key = base64.b64decode(event.message.key)
             data = base64.b64decode(event.message.data)
-            db.put(key, data)
+            db.db.put(key, data)
         if event.message.operation == "delete":
             key = base64.b64decode(event.message.key)
-            db.delete(key)
+            db.db.delete(key)
 
     
     async def on_ready(self):
@@ -204,7 +204,7 @@ class Storage():
     def __getattr__(self, name):
         def wrapper(*args, **kwargs):
             # @TODO unblock
-            if self.event_driver.get_mode() != "single":
+            if self.event_driver.get_mode() == "server":
                 self.event_driver.on_db_event(self.dbname, name, *args, **kwargs)
             return getattr(self.db, name)(*args, **kwargs)
         return wrapper

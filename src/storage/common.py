@@ -72,10 +72,10 @@ class AlephStorageInstance():
         if event.message.operation == "put":
             key = base64.b64decode(event.message.key)
             data = base64.b64decode(event.message.data)
-            db.db.put(key, data)
+            db.put(key, data)
         if event.message.operation == "delete":
             key = base64.b64decode(event.message.key)
-            db.db.delete(key)
+            db.delete(key)
 
     
     async def on_ready(self):

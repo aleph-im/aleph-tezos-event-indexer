@@ -143,6 +143,7 @@ class AlephStorageInstance():
     async def subscribe(self, data: SubscribeModel):
         if "http" not in self.instance["pubsub_server"]:
             print("no server to subscribe")
+            return False
 
         options = data.dict(exclude_none=True)
         del options["pubsub_server"]

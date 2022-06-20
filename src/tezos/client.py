@@ -20,6 +20,10 @@ class TezosClient:
                     if resp.status not in status_codes:
                         raise Exception("Error: {}".format(resp.status))
                     return await resp.json()
+            except aiohttp.ClientConnectorError as err:
+                print("got", err, "Cool down for 120s...")
+                time.sleep(120)
+                return await self.get_json(url, status_codes=status_codes, retry=retry)
             except Exception as err:
                 print("got", err, "Cool down for 10s...")
                 traceback.print_exc()

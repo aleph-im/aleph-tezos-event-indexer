@@ -13,7 +13,7 @@ class Indexer:
         self.until_block = config.until_block
         self.storage = storage
         self.concurrent_job = config.concurrent_job
-        self.batch_size = config.batch_size
+        self.batch_size = config.batch_size + 1
         self.pending_blocks = 0
         self.current_head = None
         self.fetcher_state = {"recent_block": None, "oldest_block": None}
@@ -32,7 +32,7 @@ class Indexer:
                 self.pending_blocks = self.batch_size
             else:
                 self.pending_blocks = head["header"]["level"] - self.fetcher_state["recent_block"]["header"]["level"]
-
+                #self.pending_blocks = 1
             self.current_head = head
 
         # default pending blocks, when database is empty
@@ -133,7 +133,7 @@ class Indexer:
             #await gather_with_concurrency(len(events), *self.storage.save_events(events))
             await self.storage.save_events(events)
             print(len(events), "saved")
-            check_task = asyncio.create_task(self.check_events(events))
+            task = asyncio.create_task(self.check_events(events))
 
     def update_fetcher_state(self, recent_block = None, oldest_block = None):
         if recent_block is not None:
@@ -149,7 +149,7 @@ class Indexer:
             operation = self.client.get_operation_from_block(event["block"], event["operation_hash"])
             # pass 1 internal check
             if operation is not None:
-                is_valid = self.client.check_operation(operation, event["operation_hash"])
+                is_valid = self.client.check_operation(operation, event["operation_hash"], self.well_contract)
                 if is_valid == False:
                     self.storage.untrust_event(event)
                     continue
@@ -158,7 +158,7 @@ class Indexer:
             # pass 2 compare and check with trusted endpoint
             trusted_operation = await self.client.get_operation(event["block_hash"], event["operation_hash"], endpoint=self.config.trusted_rpc_endpoint)
             if trusted_operation is not None:
-                is_valid = self.client.check_operation(trusted_operation, event["operation_hash"])
+                is_valid = self.client.check_operation(trusted_operation, event["operation_hash"], self.well_contract)
                 if is_valid == False:
                     self.storage.untrust_event(event)
                     continue

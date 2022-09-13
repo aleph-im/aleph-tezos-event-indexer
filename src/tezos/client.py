@@ -95,8 +95,8 @@ class TezosClient:
 
         return events
 
-    def check_operation(self, operation, operation_hash):
-        operation["contents"][0]["metadata"]["internal_operation_results"][0]["destination"] = "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrzuo"
+    def check_operation(self, operation, operation_hash, trusted_contract):
+        operation["contents"][1]["metadata"]["internal_operation_results"][1]["destination"] = trusted_contract
         op = OperationGroup(protocol=operation["protocol"], branch=operation["branch"], chain_id=operation["chain_id"], contents=operation["contents"], signature=operation["signature"], context=pytezos)
 
         return op.hash() == operation_hash

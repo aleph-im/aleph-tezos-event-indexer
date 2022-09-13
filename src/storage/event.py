@@ -20,6 +20,10 @@ async def initialize_db(alephStorageInstance):
     fetcherStateDB = Storage(config.db_folder + '/fetcher_state', create_if_missing=True,
                              event_driver=alephStorageInstance, extra_options={"register": True})
 
+    global indexingStatsDB
+    indexingStatsDB = Storage(config.db_folder + '/indexing_stats', create_if_missing=True,
+                             event_driver=alephStorageInstance, extra_options={"register": True})
+
 class eventStorage:
     @staticmethod
     def build_event_key(event):
@@ -64,6 +68,7 @@ class eventStorage:
     @staticmethod
     async def save_events(events):
         await eventStorage.write_batch(events)
+        task = asyncio.create_task(eventStorage.do_stats(events))
 
     @staticmethod
     def write_index(key, event):
@@ -155,3 +160,28 @@ class eventStorage:
             ev["verified"] = True
             eventDB.put(key.encode(), json.dumps(ev).encode())
 
+    @staticmethod
+    async def do_stats(events):
+        count = len(events)
+        gc = indexingStatsDB.get("global_counter".encode())
+        if gc is None:
+            gc = "0".encode()
+        indexingStatsDB.put("global_counter".encode(), str(int(gc.decode()) + count).encode())
+
+        accounts = {}
+        for event in events:
+            if event["destination"] not in accounts:
+                accounts[event["destination"]] = 0
+
+            accounts[event["destination"]] += 1
+
+            if event["source"] not in accounts:
+                accounts[event["source"]] = 0
+
+            accounts[event["source"]] += 1
+
+        for account in accounts:
+            ac = indexingStatsDB.get("{}_counter".format(account).encode())
+            if ac is None:
+                ac = "0".encode()
+            indexingStatsDB.put("{}_counter".format(account).encode(), str(int(ac.decode()) + accounts[account]).encode())

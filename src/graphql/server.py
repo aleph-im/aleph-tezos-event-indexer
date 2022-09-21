@@ -12,7 +12,7 @@ from .schema import types
 from ..storage.event import eventStorage
 
 class Query(graphene.ObjectType):
-    events = graphene.List(types.Events, limit=graphene.Int(default_value=100, description="max value = 1000"),
+    events = graphene.List(types.Event, limit=graphene.Int(default_value=100, description="max value = 1000"),
                            reverse=graphene.Boolean(default_value=True),
                            skip=graphene.Int(default_value=0),
                            **{"type": graphene.String(default_value=None, description="Event type, ex: burn_event. The multi match % joker can be used.")},
@@ -102,9 +102,12 @@ class Query(graphene.ObjectType):
             "recent_block": fetcher_state["recent_block"]["header"]["level"]
         }
 
+    stats = graphene.Field(types.Stats, address=graphene.String(default_value=None, description="Account address"))
+    async def resolve_stats(self, info, address):
+        return await eventStorage.get_stats(address)
 
 def startGraphQLServer():
-    app = FastAPI()
+    app = FastAPI(docs_url="/__aleph_api_doc")
 
     @app.get('/ping')
     async def ping():

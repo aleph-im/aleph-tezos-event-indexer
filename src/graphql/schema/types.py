@@ -2,7 +2,7 @@ from graphene import ObjectType, String, Float, Int, List, JSONString, Field, Bo
 from graphene.types.generic import GenericScalar
 import json
 
-class Events(ObjectType):
+class Event(ObjectType):
     class Meta:
         description = "Events"
 
@@ -28,3 +28,11 @@ class Events(ObjectType):
 class IndexStatus(ObjectType):
     oldest_block = String()
     recent_block = String()
+
+class Stats(ObjectType):
+    class Meta:
+        description = "Stats"
+
+    first_event = Field(Event)
+    last_event = Field(Event)
+    total_events = Int()

@@ -77,26 +77,34 @@ class Indexer:
         # reset counter for next run
         self.pending_blocks = 0
 
-    async def batch_run(self, from_block):
+    async def batch_run(self, from_block, direction):
         print("fetching", self.pending_blocks, "blocks starting from", from_block["hash"], "=>", from_block["header"]["level"])
         def _fetch_blocks(self, limit):
             print("limit", limit, self.pending_blocks)
             if self.pending_blocks < limit:
                 limit = self.pending_blocks
 
-            for index in range(1, limit):
-                if self.pending_blocks == 0:
+            if direction == "forward":
+                """ avoid holes """
+                range_list = reversed(range(1, limit))
+            else:
+                range_list = range(1, limit)
+
+            max_fetch = self.batch_size*self.concurrent_job
+            for index in range_list:
+                if self.pending_blocks == 0 or max_fetch <= 0:
                     break
 
                 cursor_id = "{}~{}".format(from_block["hash"], index)
                 print("fetching block", cursor_id)
                 yield self.client.get_block(cursor_id)
                 self.pending_blocks -= 1
+                max_fetch -= 1
 
         return await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
 
     async def fetch_blocks(self, from_block, direction="forward"):
-        blocks = await self.batch_run(from_block)
+        blocks = await self.batch_run(from_block, direction)
         if direction == "forward":
             blocks.insert(0, from_block)
         print(len(blocks), "fetched")

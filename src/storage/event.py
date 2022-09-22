@@ -36,10 +36,9 @@ class eventStorage:
     @staticmethod
     def save(event):
         """
-        event: {block_hash, block_level, operation_hash, source, destination, event}
+        event: {block_hash, block_level, operation_hash, source, destination, event, metadata...}
         """
         key = eventStorage.build_event_key(event)
-        print(key)
         eventDB.put(key.encode(), json.dumps(event).encode())
         eventStorage.write_index(key, event)
 
@@ -74,11 +73,13 @@ class eventStorage:
     def write_index(key, event):
         with eventIndexDB.write_batch() as wb:
             for index_key in [event[index] for index in ["metadata", "source", "destination", "operation_hash", "block_hash"]]:
-                if index_key == "metadata":
-                    """ look into metadata for other field as index key"""
+                if isinstance(index_key, dict):
+                    """ look into metadata for other field as index"""
                     metadata_keys = ["pkh", "from", "to", "owner", "address"]
-                    for index2_key in [event[index]["metadata"] for index2 in metadata_keys]:
-                        wb.put(f"{index2_key}_{key}".encode(), key.encode())
+                    for allowed_key in metadata_keys:
+                        if allowed_key in event["metadata"]:
+                            index2_key = event["metadata"][allowed_key]
+                            wb.put(f"{index2_key}_{key}".encode(), key.encode())
                 else:
                     wb.put(f"{index_key}_{key}".encode(), key.encode())
             wb.write()
@@ -149,7 +150,7 @@ class eventStorage:
         fetcherStateDB.put('fetcher_state'.encode(), json.dumps(fetcher_state).encode())
 
     @staticmethod
-    def unstrust_event(event):
+    def untrust_event(event):
         key = eventStorage.build_event_key(event)
         ev = eventDB.get(key.encode())
         if ev:

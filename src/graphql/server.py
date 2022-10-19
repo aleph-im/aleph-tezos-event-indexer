@@ -17,8 +17,7 @@ class Query(graphene.ObjectType):
                            skip=graphene.Int(default_value=0),
                            **{"type": graphene.String(default_value=None, description="Event type, ex: burn_event. The multi match % joker can be used.")},
                            source=graphene.String(default_value=None, description="Source address"),
-                           destination=graphene.String(default_value=None, description="Destination address"),
-                           wildcard_address=graphene.String(default_value=None, description="WILDCARD address, this can be any address, source or destination or a supported event metadata address (pkh, owner, from, to, address)"),
+                           wildcard_address=graphene.String(default_value=None, description="WILDCARD address, this can be any address, source or a supported event metadata address (pkh, owner, from, to, address)"),
                            operation_hash=graphene.String(default_value=None, description="Operation hash"),
                            block_hash=graphene.String(default_value=None, description="Block hash"))
     async def resolve_events(self, info, **kwargs):
@@ -27,7 +26,6 @@ class Query(graphene.ObjectType):
         skip = kwargs["skip"]
         target_type = kwargs["type"]
         source = kwargs["source"]
-        destination = kwargs["destination"]
         wildcard_address = kwargs["wildcard_address"]
         operation_hash = kwargs["operation_hash"]
         block_hash = kwargs["block_hash"]
@@ -37,11 +35,11 @@ class Query(graphene.ObjectType):
             limit = max_limit
 
         address = None
-        index_list_len = len(list(filter(None, [source, destination, wildcard_address, operation_hash, block_hash])))
+        index_list_len = len(list(filter(None, [source, wildcard_address, operation_hash, block_hash])))
 
         if index_list_len > 0:
-            # keep block_hash, operation_hash, source, destination order to reduce unnecessary reading
-            address = block_hash or operation_hash or wildcard_address or source or destination
+            # keep block_hash, operation_hash, source, order to reduce unnecessary reading
+            address = block_hash or operation_hash or wildcard_address or source
 
         events = eventStorage.get_events(reverse=reverse, limit=limit, skip=skip, index_address=address)
         if index_list_len < 2 and target_type is None:
@@ -57,9 +55,6 @@ class Query(graphene.ObjectType):
         idx_to_delete = []
         for idx, event in enumerate(events):
             if source is not None and source != event["source"]:
-                idx_to_delete.append(idx)
-                continue
-            if destination is not None and destination != event["destination"]:
                 idx_to_delete.append(idx)
                 continue
             if operation_hash is not None and operation_hash != event["operation_hash"]:

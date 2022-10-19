@@ -72,13 +72,13 @@ class eventStorage:
     @staticmethod
     def write_index(key, event):
         with eventIndexDB.write_batch() as wb:
-            for index_key in [event[index] for index in ["metadata", "source", "destination", "operation_hash", "block_hash"]]:
+            for index_key in [event[index] for index in ["_event", "source", "operation_hash", "block_hash"]]:
                 if isinstance(index_key, dict):
                     """ look into metadata for other field as index"""
                     metadata_keys = ["pkh", "from", "to", "owner", "address"]
                     for allowed_key in metadata_keys:
-                        if allowed_key in event["metadata"]:
-                            index2_key = event["metadata"][allowed_key]
+                        if allowed_key in event["_event"]:
+                            index2_key = event["_event"][allowed_key]
                             wb.put(f"{index2_key}_{key}".encode(), key.encode())
                 else:
                     wb.put(f"{index_key}_{key}".encode(), key.encode())

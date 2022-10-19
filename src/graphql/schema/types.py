@@ -10,20 +10,22 @@ class Event(ObjectType):
     block_level = Int()
     operation_hash = String()
     source = String()
-    destination = String()
-    type = String()
     format = String()
-    metadata = GenericScalar()
     block = GenericScalar()
     verified = Boolean()
     nonce = Int()
     timestamp = String()
+    _tag = String()
+    _event = GenericScalar()
 
     # load block if requested
     def resolve_block(data, info):
         block = data["block"](data["block_hash"])
         if block:
             return json.loads(block)
+
+    def resolve_tag(data, info):
+        return data["_kind"]
 
 class IndexStatus(ObjectType):
     oldest_block = String()

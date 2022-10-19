@@ -72,6 +72,7 @@ class TezosClient:
 
         event_parser = MichelsonType.match(internal_op["type"])
         event = event_parser.from_micheline_value(internal_op["payload"]).to_python_object()
+        event = self.decode_dict(event)
         if isinstance(event, bytes):
             try:
                 event = json.loads(event)
@@ -115,3 +116,15 @@ class TezosClient:
                     if op.hash() != operation_hash:
                         return False
         return True
+
+    def decode_dict(self, d):
+        result = {}
+        for key, value in d.items():
+            if isinstance(key, bytes):
+                key = key.decode()
+            if isinstance(value, bytes):
+                value = value.decode()
+            elif isinstance(value, dict):
+                value = decode_dict(value)
+            result.update({key: value})
+        return result

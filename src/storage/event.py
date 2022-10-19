@@ -177,11 +177,6 @@ class eventStorage:
 
         accounts = {}
         for event in events:
-            if event["destination"] not in accounts:
-                accounts[event["destination"]] = 0
-
-            accounts[event["destination"]] += 1
-
             if event["source"] not in accounts:
                 accounts[event["source"]] = 0
 

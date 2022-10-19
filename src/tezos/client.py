@@ -73,7 +73,11 @@ class TezosClient:
         event_parser = MichelsonType.match(internal_op["type"])
         event = event_parser.from_micheline_value(internal_op["payload"]).to_python_object()
         if isinstance(event, bytes):
-            event = json.loads(event)
+            try:
+                event = json.loads(event)
+            except:
+                print("event decode failed =>", event)
+                event = internal_op["payload"]
         return { "_kind": internal_op["tag"], "_event": event }
 
     async def get_events(self, block, well_contract):

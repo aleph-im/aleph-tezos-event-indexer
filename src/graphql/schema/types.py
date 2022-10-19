@@ -24,7 +24,7 @@ class Event(ObjectType):
         if block:
             return json.loads(block)
 
-    def resolve_tag(data, info):
+    def resolve__tag(data, info):
         return data["_kind"]
 
 class IndexStatus(ObjectType):

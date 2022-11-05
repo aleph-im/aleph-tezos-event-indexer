@@ -62,7 +62,7 @@ class Indexer:
 
         if self.fetcher_state["oldest_block"] is not None:
             oldest_level = self.fetcher_state["oldest_block"]["header"]["level"]
-            if oldest_level < self.until_block:
+            if oldest_level <= self.until_block:
                 # reset counter for next run
                 self.pending_blocks = 0
                 return

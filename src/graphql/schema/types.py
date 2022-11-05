@@ -30,6 +30,7 @@ class Event(ObjectType):
 class IndexStatus(ObjectType):
     oldest_block = String()
     recent_block = String()
+    status = String()
 
 class Stats(ObjectType):
     class Meta:

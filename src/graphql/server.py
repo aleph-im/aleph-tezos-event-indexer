@@ -10,6 +10,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler, make_playground_handler
 from .schema import types
 from ..storage.event import eventStorage
+from src.config import config
 
 class Query(graphene.ObjectType):
     events = graphene.List(types.Event, limit=graphene.Int(default_value=100, description="max value = 1000"),
@@ -94,9 +95,15 @@ class Query(graphene.ObjectType):
     index_status = graphene.Field(types.IndexStatus)
     async def resolve_index_status(self, info):
         fetcher_state = eventStorage.get_fetcher_state()
+        oldest_block_level = fetcher_state["oldest_block"]["header"]["level"]
+        status = "in progress"
+        if oldest_block_level <= config.until_block or oldest_block_level == 0:
+            status = "synced"
+
         return {
             "oldest_block": fetcher_state["oldest_block"]["header"]["level"],
-            "recent_block": fetcher_state["recent_block"]["header"]["level"]
+            "recent_block": fetcher_state["recent_block"]["header"]["level"],
+            "status": status
         }
 
     stats = graphene.Field(types.Stats, address=graphene.String(default_value=None, description="Account address"))

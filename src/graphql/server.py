@@ -96,7 +96,7 @@ class Query(graphene.ObjectType):
     async def resolve_index_status(self, info):
         fetcher_state = eventStorage.get_fetcher_state()
         oldest_block_level = fetcher_state["oldest_block"]["header"]["level"]
-        status = "in progress"
+        status = "in_progress"
         if oldest_block_level <= config.until_block or oldest_block_level == 0:
             status = "synced"
 

@@ -1,8 +1,5 @@
 import asyncio
-import aiohttp
 import itertools
-import time
-import threading
 from .utils.common import gather_with_concurrency
 
 class Indexer:

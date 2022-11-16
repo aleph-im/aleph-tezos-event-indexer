@@ -73,18 +73,18 @@ class Query(graphene.ObjectType):
                     search_from_start = True
 
                 if search_from_end and search_from_start:
-                    if event["type"].find(target_type) == -1:
+                    if event["_kind"].find(target_type) == -1:
                         idx_to_delete.append(idx)
                     continue
                 elif search_from_end:
-                    if event["type"].endswith(target_type) is False:
+                    if event["_kind"].endswith(target_type) is False:
                         idx_to_delete.append(idx)
                     continue
                 elif search_from_start:
-                    if event["type"].startswith(target_type) is False:
+                    if event["_kind"].startswith(target_type) is False:
                         idx_to_delete.append(idx)
                     continue
-                elif target_type != event["type"]:
+                elif target_type != event["_kind"]:
                     idx_to_delete.append(idx)
                     continue
 

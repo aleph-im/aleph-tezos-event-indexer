@@ -15,8 +15,8 @@ class Event(ObjectType):
     verified = Boolean()
     nonce = Int()
     timestamp = String()
-    _tag = String()
-    _event = GenericScalar()
+    type = String()
+    payload = GenericScalar()
 
     # load block if requested
     def resolve_block(data, info):
@@ -24,8 +24,11 @@ class Event(ObjectType):
         if block:
             return json.loads(block)
 
-    def resolve__tag(data, info):
+    def resolve_type(data, info):
         return data["_kind"]
+
+    def resolve_payload(data, info):
+        return data["_event"]
 
 class IndexStatus(ObjectType):
     oldest_block = String()

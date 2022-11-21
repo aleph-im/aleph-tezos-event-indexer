@@ -127,6 +127,6 @@ class TezosClient:
             if isinstance(value, bytes):
                 value = value.decode()
             elif isinstance(value, dict):
-                value = decode_dict(value)
+                value = self.decode_dict(value)
             result.update({key: value})
         return result

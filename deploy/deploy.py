@@ -6,6 +6,7 @@ import inspect
 from aleph_client.__main__ import _load_account
 from aleph_client.conf import settings
 from aleph_client.synchronous import create_program, create_store
+from aleph_client.utils import create_archive
 from aleph_client.types import StorageEnum
 from aleph_message.models.program import Encoding
 from aleph_message.models import StoreMessage, ProgramMessage, StoreContent
@@ -27,11 +28,10 @@ CHANNEL = "TEZOS"
 BUILD_PATH = "./build"
 
 def create_program_squashfs(path, name):
-    logger.debug("Creating squashfs archive...")
-    os.system(f"mksquashfs {path} {BUILD_PATH}/{name}.squashfs -noappend")
-    path = f"{BUILD_PATH}/{name}.squashfs"
-    assert os.path.isfile(path)
-    return path
+    (archive_path, encoding) = create_archive(path)
+    file_path = f"{BUILD_PATH}/{name}_{archive_path}"
+    os.rename(archive_path, file_path)
+    return file_path
 
 
 def upload_program(account, program_squashfs_path: str) -> str:
@@ -50,51 +50,10 @@ def upload_program(account, program_squashfs_path: str) -> str:
         )
         logger.debug("Upload finished")
         #echo(f"{json.dumps(store_message.content.__dict__, indent=4)}")
-        echo(f"{json.dumps(result_to_dict(store_message), indent=4)}")
+        echo(f"{json.dumps(store_message.dict(), indent=4)}")
         #print_result(store_message)
         program_ref = store_message.item_hash
     return program_ref
-
-def result_to_dict(result):
-    if isinstance(result, StoreMessage):
-        return result.content.__dict__
-
-    if isinstance(result, ProgramMessage):
-        _info = {}
-        for item in result.content:
-            if isinstance(item, tuple):
-                try:
-                    json.dumps(dict([item]))
-                    _info = {**_info, **dict([item])}
-                except TypeError:                    
-                    _info[item[0]] = result_to_dict(item[1])
-        return _info
-
-    if isinstance(result, CodeContent):
-        return {
-            "encoding": result.encoding,
-            "entrypoint": result.entrypoint,
-            "ref": result.ref,
-        }
-
-    if isinstance(result, FunctionEnvironment):
-        return {
-            
-        }
-    
-    if isinstance(result, FunctionRuntime):
-        return {
-            "ref": result.ref
-        }
-
-    if isinstance(result, MachineResources):
-        return {
-            "vcpus": result.vcpus,
-            "memory": result.memory,
-            "seconds": result.seconds
-        }
-
-    #print("Unsupported result", type(result))
         
         
 def main():
@@ -164,9 +123,8 @@ def main():
         encoding=Encoding.squashfs,
         volumes=volumes,
     )
-    echo(f"{json.dumps(result_to_dict(result), indent=4)}")
+    echo(f"{json.dumps(result.dict(), indent=4)}")
 
 
 if __name__ == "__main__":
-    print(inspect.signature(create_program))
     main()

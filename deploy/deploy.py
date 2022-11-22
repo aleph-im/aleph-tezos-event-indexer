@@ -8,6 +8,9 @@ from aleph_client.conf import settings
 from aleph_client.synchronous import create_program, create_store
 from aleph_client.types import StorageEnum
 from aleph_message.models.program import Encoding
+from aleph_message.models import StoreMessage, ProgramMessage, StoreContent
+from aleph_message.models.program import ProgramContent, CodeContent, FunctionEnvironment, FunctionRuntime, MachineResources
+
 from typer import echo
 
 logger = logging.getLogger(__name__)
@@ -21,11 +24,12 @@ LIB_IPFS = "QmSZEwAAkZkoNPhMVuc5A8rwonQJhFdknC3LygDrGLg2mg"
 
 CHANNEL = "TEZOS"
 
+BUILD_PATH = "./build"
 
-def create_program_squashfs(path):
+def create_program_squashfs(path, name):
     logger.debug("Creating squashfs archive...")
-    os.system(f"mksquashfs {path} {path}.squashfs -noappend")
-    path = f"{path}.squashfs"
+    os.system(f"mksquashfs {path} {BUILD_PATH}/{name}.squashfs -noappend")
+    path = f"{BUILD_PATH}/{name}.squashfs"
     assert os.path.isfile(path)
     return path
 
@@ -36,7 +40,7 @@ def upload_program(account, program_squashfs_path: str) -> str:
         # TODO: Read in lazy mode instead of copying everything in memory
         file_content = fd.read()
         logger.debug("Uploading file")
-        result = create_store(
+        store_message = create_store(
             account=account,
             file_content=file_content,
             storage_engine=StorageEnum.storage,
@@ -45,17 +49,61 @@ def upload_program(account, program_squashfs_path: str) -> str:
             ref=None,
         )
         logger.debug("Upload finished")
-        echo(f"{json.dumps(result, indent=4)}")
-        program_ref = result["item_hash"]
+        #echo(f"{json.dumps(store_message.content.__dict__, indent=4)}")
+        echo(f"{json.dumps(result_to_dict(store_message), indent=4)}")
+        #print_result(store_message)
+        program_ref = store_message.item_hash
     return program_ref
 
+def result_to_dict(result):
+    if isinstance(result, StoreMessage):
+        return result.content.__dict__
 
+    if isinstance(result, ProgramMessage):
+        _info = {}
+        for item in result.content:
+            if isinstance(item, tuple):
+                try:
+                    json.dumps(dict([item]))
+                    _info = {**_info, **dict([item])}
+                except TypeError:                    
+                    _info[item[0]] = result_to_dict(item[1])
+        return _info
+
+    if isinstance(result, CodeContent):
+        return {
+            "encoding": result.encoding,
+            "entrypoint": result.entrypoint,
+            "ref": result.ref,
+        }
+
+    if isinstance(result, FunctionEnvironment):
+        return {
+            
+        }
+    
+    if isinstance(result, FunctionRuntime):
+        return {
+            "ref": result.ref
+        }
+
+    if isinstance(result, MachineResources):
+        return {
+            "vcpus": result.vcpus,
+            "memory": result.memory,
+            "seconds": result.seconds
+        }
+
+    #print("Unsupported result", type(result))
+        
+        
 def main():
-    app_directory = "../"
+    app_directory = "./"
+    name_version = "tezos_v0"
 
     account = _load_account(None, None)
 
-    program_squashfs_path = create_program_squashfs(app_directory)
+    program_squashfs_path = create_program_squashfs(app_directory, name_version)
     assert os.path.isfile(program_squashfs_path)
 
     program_ref = upload_program(account, program_squashfs_path)
@@ -116,7 +164,8 @@ def main():
         encoding=Encoding.squashfs,
         volumes=volumes,
     )
-    print(json.dumps(result, indent=2))
+    echo(f"{json.dumps(result_to_dict(result), indent=4)}")
+
 
 if __name__ == "__main__":
     print(inspect.signature(create_program))

@@ -104,7 +104,7 @@ class Query(graphene.ObjectType):
             data = data + events
             if len(data) >= limit+skip:
                 continue_iteration = False
-            else:
+            elif len(events) > 0:
                 continue_iteration = True
 
         return data[skip:(limit+skip)]

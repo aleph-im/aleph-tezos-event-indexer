@@ -11,18 +11,11 @@ class Event(ObjectType):
     operation_hash = String()
     source = String()
     format = String()
-    block = GenericScalar()
     verified = Boolean()
     nonce = Int()
     timestamp = String()
     type = String()
     payload = GenericScalar()
-
-    # load block if requested
-    def resolve_block(data, info):
-        block = data["block"](data["block_hash"])
-        if block:
-            return json.loads(block)
 
     def resolve_type(data, info):
         return data["_kind"]

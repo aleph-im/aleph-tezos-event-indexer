@@ -42,9 +42,11 @@ class Query(graphene.ObjectType):
             # keep block_hash, operation_hash, source, order to reduce unnecessary reading
             address = block_hash or operation_hash or wildcard_address or source
 
-        events = eventStorage.get_events(reverse=reverse, limit=limit, skip=skip, index_address=address)
+        #events = eventStorage.get_events(reverse=reverse, limit=limit, skip=skip, index_address=address)
+        events_iterator = eventStorage.get_events_iterator(reverse=reverse, index_address=address)
         if index_list_len < 2 and target_type is None:
-            return events
+            events = list(itertools.islice(events_iterator, skip, (limit+skip)))
+            return [json.loads(event.decode()) for event in events]
 
         # soft filter
         #res_len = len(events)
@@ -54,43 +56,58 @@ class Query(graphene.ObjectType):
         search_from_end = False
         # filter if more than one criteria are provided
         idx_to_delete = []
-        for idx, event in enumerate(events):
-            if source is not None and source != event["source"]:
-                idx_to_delete.append(idx)
-                continue
-            if operation_hash is not None and operation_hash != event["operation_hash"]:
-                idx_to_delete.append(idx)
-                continue
-            if block_hash is not None and block_hash != event["block_hash"]:
-                idx_to_delete.append(idx)
-                continue
-            if target_type is not None:
-                if target_type.find("%") == 0:
-                    target_type = target_type[1::]
-                    search_from_end = True
-                if target_type.find("%") > 0:
-                    target_type = target_type[:-1:]
-                    search_from_start = True
+        data  = []
+        continue_iteration = True
+        while continue_iteration:
+            continue_iteration = False
+            events = list(itertools.islice(events_iterator, 0, limit))
+            for idx, event in enumerate(events):
+                event = json.loads(event.decode())
+                events[idx] = event
 
-                if search_from_end and search_from_start:
-                    if event["_kind"].find(target_type) == -1:
-                        idx_to_delete.append(idx)
-                    continue
-                elif search_from_end:
-                    if event["_kind"].endswith(target_type) is False:
-                        idx_to_delete.append(idx)
-                    continue
-                elif search_from_start:
-                    if event["_kind"].startswith(target_type) is False:
-                        idx_to_delete.append(idx)
-                    continue
-                elif target_type != event["_kind"]:
+                if source is not None and source != event["source"]:
                     idx_to_delete.append(idx)
                     continue
+                if operation_hash is not None and operation_hash != event["operation_hash"]:
+                    idx_to_delete.append(idx)
+                    continue
+                if block_hash is not None and block_hash != event["block_hash"]:
+                    idx_to_delete.append(idx)
+                    continue
+                if target_type is not None:
+                    if target_type.find("%") == 0:
+                        target_type = target_type[1::]
+                        search_from_end = True
+                    if target_type.find("%") > 0:
+                        target_type = target_type[:-1:]
+                        search_from_start = True
 
-        for idx in sorted(idx_to_delete, reverse=True):
-            del events[idx]
-        return events
+                    if search_from_end and search_from_start:
+                        if event["_kind"].find(target_type) == -1:
+                            idx_to_delete.append(idx)
+                        continue
+                    elif search_from_end:
+                        if event["_kind"].endswith(target_type) is False:
+                            idx_to_delete.append(idx)
+                        continue
+                    elif search_from_start:
+                        if event["_kind"].startswith(target_type) is False:
+                            idx_to_delete.append(idx)
+                        continue
+                    elif target_type != event["_kind"]:
+                        idx_to_delete.append(idx)
+                        continue
+
+            for idx in sorted(idx_to_delete, reverse=True):
+                del events[idx]
+            idx_to_delete = []
+            data = data + events
+            if len(data) >= limit+skip:
+                continue_iteration = False
+            else:
+                continue_iteration = True
+
+        return data[skip:(limit+skip)]
 
     index_status = graphene.Field(types.IndexStatus)
     async def resolve_index_status(self, info):

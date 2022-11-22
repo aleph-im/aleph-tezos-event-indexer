@@ -104,13 +104,22 @@ class eventStorage:
         items = eventDB.iterator(include_key=False, reverse=reverse)
         for item in enumerate(itertools.islice(items, skip, (limit+skip))):
             event = json.loads(item[1].decode())
-            event["block"] = lambda block_hash: blockDB.get(block_hash.encode())
-            #if with_block:
-            #    block = blockDB.get(event["hash"])
-            #    event["block"] = json.loads(block)
             events.append(event)
 
         return events
+
+    @staticmethod
+    def get_events_iterator(reverse=True, index_address=None):
+        start = None
+        stop = None
+
+        if index_address is not None:
+            start = "{}_{}".format(index_address, "0")
+            stop = "{}_{}".format(index_address, "~")
+            return eventIndexDB.iterator(include_key=False, start=start.encode(), stop=stop.encode(), include_start=True, include_stop=True)
+
+
+        return eventDB.iterator(include_key=False, reverse=reverse)
 
     @staticmethod
     def get_recent_block():
@@ -201,3 +210,7 @@ class eventStorage:
             "first_event": first_event[0],
             "last_event": last_event[0]
         }
+
+    @staticmethod
+    def get_block(block_hash):
+        return blockDB.get(block_hash.encode())

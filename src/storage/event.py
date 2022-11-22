@@ -214,3 +214,7 @@ class eventStorage:
     @staticmethod
     def get_block(block_hash):
         return blockDB.get(block_hash.encode())
+
+    @staticmethod
+    def get_event(key):
+        return eventDB.get(key.encode())

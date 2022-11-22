@@ -30,7 +30,7 @@ class Query(graphene.ObjectType):
         wildcard_address = kwargs["wildcard_address"]
         operation_hash = kwargs["operation_hash"]
         block_hash = kwargs["block_hash"]
-        
+
         max_limit = 1000
         if limit > max_limit:
             limit = max_limit
@@ -46,7 +46,10 @@ class Query(graphene.ObjectType):
         events_iterator = eventStorage.get_events_iterator(reverse=reverse, index_address=address)
         if index_list_len < 2 and target_type is None:
             events = list(itertools.islice(events_iterator, skip, (limit+skip)))
-            return [json.loads(event.decode()) for event in events]
+            if address is not None:
+                [json.loads(eventStorage.get_event(event.decode()).decode()) for event in events]
+            else:
+                return [json.loads(event.decode()) for event in events]
 
         # soft filter
         #res_len = len(events)
@@ -62,7 +65,10 @@ class Query(graphene.ObjectType):
             continue_iteration = False
             events = list(itertools.islice(events_iterator, 0, limit))
             for idx, event in enumerate(events):
-                event = json.loads(event.decode())
+                if address is not None:
+                    event = json.loads(eventStorage.get_event(event.decode()).decode())
+                else:
+                    event = json.loads(event.decode())
                 events[idx] = event
 
                 if source is not None and source != event["source"]:

@@ -199,7 +199,11 @@ class eventStorage:
 
     @staticmethod
     async def get_stats(address=None):
-        gc = indexingStatsDB.get("global_counter".encode())
+        if address is not None:
+            gc = indexingStatsDB.get("{}_counter".format(address).encode())
+        else:
+            gc = indexingStatsDB.get("global_counter".encode())
+
         if gc is None:
             gc = "0".encode()
 

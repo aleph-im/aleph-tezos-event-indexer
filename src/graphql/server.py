@@ -104,13 +104,15 @@ class Query(graphene.ObjectType):
                         idx_to_delete.append(idx)
                         continue
 
+            result_len = len(events) # snap
             for idx in sorted(idx_to_delete, reverse=True):
                 del events[idx]
             idx_to_delete = []
+
             data = data + events
             if len(data) >= limit+skip:
                 continue_iteration = False
-            elif len(events) > 0:
+            elif result_len > 0:
                 continue_iteration = True
 
         return data[skip:(limit+skip)]

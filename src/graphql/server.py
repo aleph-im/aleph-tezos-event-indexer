@@ -42,12 +42,11 @@ class Query(graphene.ObjectType):
             # keep block_hash, operation_hash, source, order to reduce unnecessary reading
             address = block_hash or operation_hash or wildcard_address or source
 
-        #events = eventStorage.get_events(reverse=reverse, limit=limit, skip=skip, index_address=address)
         events_iterator = eventStorage.get_events_iterator(reverse=reverse, index_address=address)
         if index_list_len < 2 and target_type is None:
             events = list(itertools.islice(events_iterator, skip, (limit+skip)))
             if address is not None:
-                [json.loads(eventStorage.get_event(event.decode()).decode()) for event in events]
+                return [json.loads(eventStorage.get_event(event.decode()).decode()) for event in events]
             else:
                 return [json.loads(event.decode()) for event in events]
 

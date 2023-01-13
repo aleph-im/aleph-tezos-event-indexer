@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     token_address: str = ""
     token_ids: list = []
     ethereum_pkey: str = ""
+    ethereum_api_server: str = None
 
     class Config:
         env_file = ".env"

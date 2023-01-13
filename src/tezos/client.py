@@ -180,6 +180,7 @@ class TezosClient:
 
             current_block = await self.get_block("head")
             current_block_level = current_block["header"]["level"]
+            
             for address in list(set(token_holders)):
                 response = token_cls.balance_of(requests=[{"owner": address, "token_id": token_id}], callback=None).callback_view()[0]
                 if type(response) is dict:

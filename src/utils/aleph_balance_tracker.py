@@ -51,7 +51,7 @@ def get_web3():
     return w3
     
 async def monitor_process():
-    balances = []
+    balances = {}
     tezos_level = None
     keys_to_delete = []
     total = 0
@@ -66,7 +66,7 @@ async def monitor_process():
         if tezos_level != info["account"]["block_level"]:
             continue
         
-        balances.append({info["account"]["address"]: info["account"]["balance"]})
+        balances[info["account"]["address"]] = info["account"]["balance"]
         keys_to_delete.append(item[0])
 
     if len(balances) > 0:

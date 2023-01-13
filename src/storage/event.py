@@ -5,6 +5,7 @@ import itertools
 from copy import deepcopy
 from ..config import config
 from .common import Storage
+import time
 
 async def initialize_db(alephStorageInstance):
     global eventDB
@@ -23,6 +24,12 @@ async def initialize_db(alephStorageInstance):
     global indexingStatsDB
     indexingStatsDB = Storage(config.db_folder + '/indexing_stats', create_if_missing=True,
                              event_driver=alephStorageInstance, extra_options={"register": True})
+
+    global tokenHolderDB
+    tokenHolderDB = Storage(config.db_folder + '/token_holder', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
+
+    global tokenHolderChangedDB
+    tokenHolderChangedDB = Storage(config.db_folder + '/token_holder_changed', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
 
 class eventStorage:
     @staticmethod
@@ -222,3 +229,40 @@ class eventStorage:
     @staticmethod
     def get_event(key):
         return eventDB.get(key.encode())
+
+    @staticmethod
+    async def save_balances(contract, balances):
+        changed_balances = []
+        with tokenHolderDB.write_batch() as wb:
+            for balance in balances:
+                key = f"{contract}_{balance.get('token_id')}_{balance.get('address')}"
+                _holder = tokenHolderDB.get(key.encode())
+                old_balance = None
+                if _holder is not None:
+                    old_balance = json.loads(_holder.decode())["balance"]
+
+                if old_balance is None and balance.get("balance") == 0:
+                    continue
+                if old_balance is not None and balance.get("balance") == old_balance:
+                    continue
+                
+                wb.put(key.encode(), json.dumps({"ts": int(time.time()), "balance": balance.get("balance")}).encode())
+                changed_balances.append({"key": key, "balance": balance})
+        wb.write()
+
+        if len(changed_balances) > 0:
+            await eventStorage.save_changed_balances(changed_balances)
+
+    @staticmethod
+    async def save_changed_balances(balances):
+        with tokenHolderChangedDB.write_batch() as wb:
+            for changed in balances:
+                wb.put(changed.get("key").encode(), json.dumps({"ts": int(time.time()), "account": changed.get("balance")}).encode())
+
+    @staticmethod
+    def get_changed_balances():
+        return tokenHolderChangedDB.iterator()
+
+    @staticmethod
+    def delete_balance(key):
+        return tokenHolderChangedDB.delete(key)

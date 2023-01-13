@@ -6,6 +6,7 @@ from pytezos.operation.group import OperationGroup
 from pytezos.michelson.types.core import unit
 from pytezos import pytezos
 import json
+from collections import defaultdict
 
 import traceback
 
@@ -111,9 +112,9 @@ class TezosClient:
         return events
 
     def check_operation(self, operation, operation_hash, trusted_contract):
-        for tx in operation['contents']:
-            if 'metadata' in tx and 'internal_operation_results' in tx['metadata']:
-                for internal_op in tx['metadata']['internal_operation_results']:
+        for tx in operation["contents"]:
+            if "metadata" in tx and "internal_operation_results" in tx["metadata"]:
+                for internal_op in tx["metadata"]["internal_operation_results"]:
                     op = OperationGroup(protocol=operation["protocol"], branch=operation["branch"], chain_id=operation["chain_id"], contents=operation["contents"], signature=operation["signature"], context=pytezos)
                     if op.hash() != operation_hash:
                         return False
@@ -130,3 +131,60 @@ class TezosClient:
                 value = self.decode_dict(value)
             result.update({key: value})
         return result
+
+    def decode_token_txs(self, token_cls, op):
+        txs = {"transfer": [], "tokens": []}
+        for tx in op["contents"]:
+            if tx["kind"] == "transaction" and tx["destination"] == token_cls.address:
+                if tx["parameters"]["entrypoint"] == "transfer":
+                    txs["transfer"] += token_cls.transfer.decode(tx["parameters"]["value"])["transfer"]
+
+            # mint or burn
+            if "metadata" in tx and "internal_operation_results" in tx["metadata"]:
+                for internal_op in tx["metadata"]["internal_operation_results"]:
+                    if internal_op["kind"] == "transaction" and internal_op["destination"] == token_cls.address:
+                        if internal_op["parameters"]["entrypoint"] == "tokens":
+                            decoded = token_cls.tokens.decode(internal_op["parameters"]["value"])
+                            if decoded.get("mint_tokens"):
+                                txs["tokens"] += decoded.get("mint_tokens")
+                            if decoded.get("burn_tokens"):
+                                txs["tokens"] += decoded.get("burn_tokens")
+
+        return txs
+
+    def get_token_holders(self, token_cls, block):
+        holders = defaultdict(list)
+
+        for operationsArr in block["operations"]:
+            for op in operationsArr:
+                txs = self.decode_token_txs(token_cls, op)
+                for transfer in txs["transfer"]:
+                    for _transfer in transfer["txs"]:
+                        holders[_transfer["token_id"]].append(_transfer["to_"])
+
+                for burn_or_mint in txs["tokens"]:
+                    holders[burn_or_mint["token_id"]].append(burn_or_mint["owner"])
+
+        return holders
+
+    async def get_balances(self, block, contract, token_ids):
+        balances = []
+        token_cls = pytezos.using('mainnet').contract(contract)
+        # @TODO token_cls._get_token_metadata(10) fail
+        holders = self.get_token_holders(token_cls, block)
+
+        for token_id in token_ids:
+            token_holders = holders.get(token_id)
+            if token_holders is None:
+                continue
+
+            current_block = await self.get_block("head")
+            current_block_level = current_block["header"]["level"]
+            for address in list(set(token_holders)):
+                response = token_cls.balance_of(requests=[{"owner": address, "token_id": token_id}], callback=None).callback_view()[0]
+                if type(response) is dict:
+                    response = list(response.values())
+                    balance = response[1]/10**18 # !Only for token_id 10
+                    balances.append({"address": address, "balance": balance, "token_id": token_id, "block_level": current_block_level})
+                
+        return balances

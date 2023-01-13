@@ -10,6 +10,18 @@ class Settings(BaseSettings):
     concurrent_job: int = 2
     batch_size: int = 5
     pubsub: dict = None
+    objects: str = "events"
+
+    # balances
+    aleph_api_server: str = "https://api2.aleph.im"
+    aleph_channel: str = "TEST"
+    token_symbol: str = "ALEPH"
+    chain_name: str = "TEZOS"
+    filter_tag: str = "mainnet"
+    balances_post_type: str = "balances-update"
+    token_address: str = ""
+    token_ids: list = []
+    ethereum_pkey: str = ""
 
     class Config:
         env_file = ".env"

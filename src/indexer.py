@@ -1,6 +1,7 @@
 import asyncio
 import itertools
 from .utils.common import gather_with_concurrency
+from .utils.aleph_balance_tracker import monitor_process
 
 class Indexer:
     def __init__(self, client, storage, config):
@@ -106,10 +107,17 @@ class Indexer:
             blocks.insert(0, from_block)
         print(len(blocks), "fetched")
         if len(blocks) > 0:
-            events = await gather_with_concurrency(len(blocks), *self.get_events(blocks))
-            events = list(itertools.chain.from_iterable(events))
-            print(len(events), "events found")
-            await self.index(events)
+            if "events" in self.config.objects:
+                events = await gather_with_concurrency(len(blocks), *self.get_events(blocks))
+                events = list(itertools.chain.from_iterable(events))
+                print(len(events), "events found")
+                await self.index(events)
+            if "balances" in self.config.objects:
+                balances = await gather_with_concurrency(len(blocks), *self.get_balances(blocks))
+                balances = list(itertools.chain.from_iterable(balances))
+                print(len(balances), "balances found")
+                await self.index_balances(balances)
+
         return blocks
 
     async def forward_run(self, from_block):
@@ -140,6 +148,16 @@ class Indexer:
             print(len(events), "saved")
             task = asyncio.create_task(self.check_events(events))
 
+    def get_balances(self, blocks):
+        for block in blocks:
+            yield self.client.get_balances(block, self.config.token_address, self.config.token_ids)
+
+    async def index_balances(self, balances):
+        if len(balances) > 0:
+            await self.storage.save_balances(self.config.token_address, balances)
+            await monitor_process()
+            
+
     def update_fetcher_state(self, recent_block = None, oldest_block = None):
         if recent_block is not None:
             self.fetcher_state["recent_block"] = recent_block
@@ -158,7 +176,6 @@ class Indexer:
                 if is_valid == False:
                     self.storage.untrust_event(event)
                     continue
-            #print("operation", event["operation_hash"], "pass 1")
 
             # pass 2 compare and check with trusted endpoint
             trusted_operation = await self.client.get_operation(event["block_hash"], event["operation_hash"], endpoint=self.config.trusted_rpc_endpoint)
@@ -167,5 +184,5 @@ class Indexer:
                 if is_valid == False:
                     self.storage.untrust_event(event)
                     continue
-            #print("operation", event["operation_hash"], "pass 2")
+
             self.storage.trust_event(event)

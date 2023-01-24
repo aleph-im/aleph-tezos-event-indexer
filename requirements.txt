@@ -7,7 +7,7 @@ plyvel
 pydantic
 python-dotenv
 fastapi
-uvicorn
+uvicorn==0.20.0
 starlette-graphene3
 mnemonic
 git+https://github.com/aleph-im/aleph-sdk-python@main

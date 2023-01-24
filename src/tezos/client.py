@@ -130,6 +130,10 @@ class TezosClient:
                 value = value.decode()
             elif isinstance(value, dict):
                 value = self.decode_dict(value)
+            elif isinstance(value, list):
+                for list_id, list_value in enumerate(value):
+                    value[list_id] = self.decode_dict(list_value)
+
             result.update({key: value})
         return result
 

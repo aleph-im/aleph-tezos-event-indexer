@@ -11,4 +11,4 @@ uvicorn
 starlette-graphene3
 mnemonic
 git+https://github.com/aleph-im/aleph-sdk-python@main
-web3
+web3==5.26.0

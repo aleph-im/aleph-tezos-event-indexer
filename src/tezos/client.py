@@ -177,7 +177,7 @@ class TezosClient:
 
     async def get_balances(self, block, contract, token_ids):
         balances = []
-        token_cls = pytezos.using('mainnet').contract(contract)
+        token_cls = pytezos.using(shell=self.endpoint).contract(contract)
         # @TODO token_cls._get_token_metadata(10) fail
         holders = self.get_token_holders(token_cls, block)
 

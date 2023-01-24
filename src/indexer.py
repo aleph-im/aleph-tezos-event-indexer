@@ -22,21 +22,17 @@ class Indexer:
 
         print("run", self.pending_blocks)
 
+        head = await self.client.get_block('head')
         if self.fetcher_state["recent_block"] is not None and self.pending_blocks == 0:
-            head = await self.client.get_block('head')
-
             first_run = self.fetcher_state["oldest_block"] is None
             if first_run:
                 self.pending_blocks = self.batch_size
             else:
                 self.pending_blocks = head["header"]["level"] - self.fetcher_state["recent_block"]["header"]["level"]
-                #self.pending_blocks = 1
             self.current_head = head
 
         # default pending blocks, when database is empty
         if self.fetcher_state["recent_block"] is None and self.pending_blocks == 0:
-            head = await self.client.get_block('head')
-            #self.pending_blocks = self.concurrent_job*self.batch_size
             self.pending_blocks = self.batch_size
             self.current_head = head
 
@@ -55,7 +51,6 @@ class Indexer:
             await self.forward_run(self.current_head)
 
         # retore blocks count to fetch for backward
-        #self.pending_blocks = self.concurrent_job*self.batch_size
         self.pending_blocks = self.batch_size
 
         if self.fetcher_state["oldest_block"] is not None:
@@ -88,24 +83,18 @@ class Indexer:
             else:
                 range_list = range(1, limit)
 
-            max_fetch = self.batch_size*self.concurrent_job
             for index in range_list:
-                if self.pending_blocks == 0 or max_fetch <= 0:
+                if self.pending_blocks == 0:
                     break
 
-                cursor_id = "{}~{}".format(from_block["hash"], index)
+                cursor_id = "{}".format(from_block["header"]["level"] - index)
                 print("fetching block", cursor_id)
                 yield self.client.get_block(cursor_id)
                 self.pending_blocks -= 1
-                max_fetch -= 1
 
         return await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
 
-    async def fetch_blocks(self, from_block, direction="forward"):
-        blocks = await self.batch_run(from_block, direction)
-        if direction == "forward":
-            blocks.insert(0, from_block)
-        print(len(blocks), "fetched")
+    async def execute(self, blocks):
         if len(blocks) > 0:
             if "events" in self.config.objects:
                 events = await gather_with_concurrency(len(blocks), *self.get_events(blocks))
@@ -117,7 +106,13 @@ class Indexer:
                 balances = list(itertools.chain.from_iterable(balances))
                 print(len(balances), "balances found")
                 await self.index_balances(balances)
-
+        
+    async def fetch_blocks(self, from_block, direction="forward"):
+        blocks = await self.batch_run(from_block, direction)
+        if direction == "forward":
+            blocks.insert(0, from_block)
+        print(len(blocks), "fetched")
+        await self.execute(blocks)
         return blocks
 
     async def forward_run(self, from_block):

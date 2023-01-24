@@ -123,6 +123,9 @@ class TezosClient:
 
     def decode_dict(self, d):
         result = {}
+        if isinstance(d, str):
+            return d
+
         for key, value in d.items():
             if isinstance(key, bytes):
                 key = key.decode()

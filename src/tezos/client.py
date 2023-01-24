@@ -1,3 +1,4 @@
+import asyncio
 import aiohttp
 import time
 from pytezos.michelson.types import MichelsonType
@@ -25,12 +26,12 @@ class TezosClient:
                     return await resp.json()
             except aiohttp.ClientConnectorError as err:
                 print("got", err, "Cool down for 120s...")
-                time.sleep(120)
+                await asyncio.sleep(120)
                 return await self.get_json(url, status_codes=status_codes, retry=retry)
             except Exception as err:
                 print("got", err, "Cool down for 10s...")
                 traceback.print_exc()
-                time.sleep(10)
+                await asyncio.sleep(10)
                 retry -= 1
                 if retry == 0:
                     print("Max retry reached")

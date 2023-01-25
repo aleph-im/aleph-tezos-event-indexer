@@ -123,7 +123,12 @@ class TezosClient:
 
     def decode_dict(self, d):
         result = {}
-        if isinstance(d, str):
+
+        if isinstance(d, list):
+            for list_id, list_value in enumerate(d):
+                d[list_id] = self.decode_dict(list_value)
+            return d
+        elif not isinstance(d, dict):
             return d
 
         for key, value in d.items():

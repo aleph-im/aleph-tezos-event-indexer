@@ -73,6 +73,7 @@ class Indexer:
     async def batch_run(self, from_block, direction):
         print("fetching", self.pending_blocks, "blocks starting from", from_block["hash"], "=>", from_block["header"]["level"])
         def _fetch_blocks(self, limit):
+            total_fetched = 0
             print("limit", limit, self.pending_blocks)
             if self.pending_blocks < limit:
                 limit = self.pending_blocks
@@ -84,15 +85,18 @@ class Indexer:
                 range_list = range(1, limit)
 
             for index in range_list:
-                if self.pending_blocks == 0:
+                if self.pending_blocks == 0 or total_fetched > 10:
+                    total_fetched = 0
                     break
 
                 cursor_id = "{}".format(from_block["header"]["level"] - index)
                 print("fetching block", cursor_id)
                 yield self.client.get_block(cursor_id)
                 self.pending_blocks -= 1
+                total_fetched += 1
 
-        return await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
+        while self.pending_blocks > 0:
+            yield await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
 
     async def execute(self, blocks):
         if len(blocks) > 0:
@@ -108,11 +112,17 @@ class Indexer:
                 await self.index_balances(balances)
         
     async def fetch_blocks(self, from_block, direction="forward"):
-        blocks = await self.batch_run(from_block, direction)
-        if direction == "forward":
-            blocks.insert(0, from_block)
-        print(len(blocks), "fetched")
-        await self.execute(blocks)
+        _blocks = []
+        async for blocks in self.batch_run(from_block, direction):
+            if direction == "forward":
+                blocks.insert(0, from_block)
+            print(len(blocks), "fetched")
+            await self.execute(blocks)
+            if len(_blocks) == 0:
+                _blocks.insert(0, blocks[0])
+                _blocks.insert(1, blocks[-1])
+            else:
+                _blocks.insert(1, blocks[-1])
         return blocks
 
     async def forward_run(self, from_block):

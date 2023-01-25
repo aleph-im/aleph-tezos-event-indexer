@@ -129,6 +129,12 @@ class TezosClient:
         for key, value in d.items():
             if isinstance(key, bytes):
                 key = key.decode()
+            elif not isinstance(key, str):
+                try:
+                    key = repr(key)
+                except:
+                    pass
+ 
             if isinstance(value, bytes):
                 value = value.decode()
             elif isinstance(value, dict):
@@ -136,7 +142,13 @@ class TezosClient:
             elif isinstance(value, list):
                 for list_id, list_value in enumerate(value):
                     value[list_id] = self.decode_dict(list_value)
-
+            elif not isinstance(value, str):
+                # convert an unexpected custom type to a represented version
+                try:
+                    value = repr(value)
+                except:
+                    pass
+ 
             result.update({key: value})
         return result
 

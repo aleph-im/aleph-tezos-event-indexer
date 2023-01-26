@@ -11,6 +11,8 @@ from starlette_graphene3 import GraphQLApp, make_graphiql_handler, make_playgrou
 from .schema import types
 from ..storage.event import eventStorage
 from src.config import config
+from datetime import datetime
+import dateutil
 
 class Query(graphene.ObjectType):
     events = graphene.List(types.Event, limit=graphene.Int(default_value=100, description="max value = 1000"),
@@ -123,6 +125,14 @@ class Query(graphene.ObjectType):
         status = "in_progress"
         if oldest_block_level <= config.until_block or oldest_block_level == 0:
             status = "synced"
+
+        # check if recent_block increasing
+        if status == "synced":
+            last_block_date = dateutil.parser.parse(fetcher_state["recent_block"]["header"]["timestamp"])
+            current_date = datetime.now(dateutil.tz.tzutc())
+            date_delta = current_date - last_block_date
+            if (date_delta.total_seconds() / 60) > 10:
+                status = "down"
 
         return {
             "oldest_block": fetcher_state["oldest_block"]["header"]["level"],

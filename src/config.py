@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     until_block: int = 0
     rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"
     trusted_rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"
+    host: str = "127.0.0.1"
     port: int = 8080
     concurrent_job: int = 2
     batch_size: int = 5

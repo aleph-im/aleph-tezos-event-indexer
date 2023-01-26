@@ -74,7 +74,7 @@ if __name__ == "run":
 if __name__ == "__main__":
     import uvicorn
     loop = asyncio.new_event_loop()
-    _config = uvicorn.Config(app=app, loop=loop, host="0.0.0.0", port=config.port)
+    _config = uvicorn.Config(app=app, loop=loop, host=config.host, port=config.port)
     server = uvicorn.Server(_config)
     server.install_signal_handlers = lambda: None
     asyncio.run(start(loop, server))

@@ -1,4 +1,4 @@
-pytezos==3.0.3
+pytezos==3.4.1
 Jinja2==3.1.2
 aiohttp==3.8.3
 asyncio
@@ -12,5 +12,5 @@ uvicorn==0.20.0
 starlette==0.22.0
 starlette-graphene3==0.6.0
 mnemonic
-git+https://github.com/aleph-im/aleph-sdk-python@main
+aleph-client
 web3==5.27.0

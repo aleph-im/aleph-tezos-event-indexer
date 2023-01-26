@@ -74,7 +74,8 @@ class eventStorage:
     @staticmethod
     async def save_events(events):
         await eventStorage.write_batch(events)
-        task = asyncio.create_task(eventStorage.do_stats(events))
+        #task = asyncio.create_task(eventStorage.do_stats(events))
+        await eventStorage.do_stats(events)
 
     @staticmethod
     def write_index(key, event):

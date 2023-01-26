@@ -81,22 +81,22 @@ class Indexer:
 
             if direction == "forward":
                 """ avoid holes """
-                range_list = reversed(range(1, limit))
+                range_list = reversed(range(1, limit + 1))
             else:
-                range_list = range(1, limit)
+                range_list = range(1, limit + 1)
 
             for index in range_list:
-                if self.pending_blocks == 0 or total_fetched > self.batch_size:
-                    total_fetched = 0
-                    break
-
                 cursor_id = "{}".format(from_block["header"]["level"] - index)
                 print("fetching block", cursor_id)
                 yield self.client.get_block(cursor_id)
                 self.pending_blocks -= 1
                 total_fetched += 1
 
-        while self.pending_blocks > 1:
+                if self.pending_blocks == 0 or total_fetched > self.batch_size:
+                    total_fetched = 0
+                    break
+
+        while self.pending_blocks > 0:
             yield await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
 
     async def execute(self, blocks):

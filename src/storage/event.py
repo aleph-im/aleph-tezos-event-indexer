@@ -216,10 +216,11 @@ class eventStorage:
 
         first_event = eventStorage.get_events(False, 1, 0, address)
         last_event = eventStorage.get_events(True, 1, 0, address)
+
         return {
             "total_events": gc.decode(),
-            "first_event": first_event[0],
-            "last_event": last_event[0]
+            "first_event": first_event[0] if len(first_event) > 0 else None,
+            "last_event": last_event[0] if len(last_event) > 0 else None
         }
 
     @staticmethod

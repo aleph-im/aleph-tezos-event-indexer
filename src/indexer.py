@@ -72,6 +72,7 @@ class Indexer:
 
     async def batch_run(self, from_block, direction):
         print("fetching", self.pending_blocks, "blocks starting from", from_block["hash"], "=>", from_block["header"]["level"])
+
         def _fetch_blocks(self, limit):
             total_fetched = 0
             print("limit", limit, self.pending_blocks)
@@ -85,7 +86,7 @@ class Indexer:
                 range_list = range(1, limit)
 
             for index in range_list:
-                if self.pending_blocks == 0 or total_fetched > 10:
+                if self.pending_blocks == 0 or total_fetched > self.batch_size:
                     total_fetched = 0
                     break
 
@@ -95,7 +96,7 @@ class Indexer:
                 self.pending_blocks -= 1
                 total_fetched += 1
 
-        while self.pending_blocks > 0:
+        while self.pending_blocks > 1:
             yield await gather_with_concurrency(self.concurrent_job, *_fetch_blocks(self, self.pending_blocks))
 
     async def execute(self, blocks):
@@ -114,16 +115,19 @@ class Indexer:
     async def fetch_blocks(self, from_block, direction="forward"):
         _blocks = []
         async for blocks in self.batch_run(from_block, direction):
+            #if len(blocks) == 0
             if direction == "forward":
                 blocks.insert(0, from_block)
             print(len(blocks), "fetched")
             await self.execute(blocks)
             if len(_blocks) == 0:
                 _blocks.insert(0, blocks[0])
-                _blocks.insert(1, blocks[-1])
+                if len(blocks) > 0:
+                    _blocks.insert(1, blocks[-1])
             else:
                 _blocks.insert(1, blocks[-1])
-        return blocks
+
+        return _blocks
 
     async def forward_run(self, from_block):
         print("forward_fetch")

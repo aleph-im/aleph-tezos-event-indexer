@@ -40,34 +40,19 @@ class Query(graphene.ObjectType):
         address = None
         index_list_len = len(list(filter(None, [source, wildcard_address, operation_hash, block_hash])))
 
+        index_name = "main"
         if index_list_len > 0:
             # keep block_hash, operation_hash, source, order to reduce unnecessary reading
-            address = None
-            address_key = None
-            if block_hash:
-                address = block_hash
-                address_key = "block_hash"
-            elif operation_hash:
-                address = operation_hash
-                address_key = "operation_hash"
-            elif source:
-                address = source
-                address_key = "source"
-            elif wildcard_address:
-                address = wildcard_address
+            address = block_hash or operation_hash or source or wildcard_address
+            if wildcard_address:
+                index_name = "wildcard"
 
-        events_iterator = eventStorage.get_events_iterator(reverse=reverse, index_address=address)
+        events_iterator = eventStorage.get_events_iterator(reverse=reverse, index_address=address, index_name=index_name)
 
         if index_list_len < 2 and target_type is None:
             events = list(itertools.islice(events_iterator, skip, (limit+skip)))
             if address is not None:
-                items = [json.loads(eventStorage.get_event(event.decode()).decode()) for event in events]
-                if address_key:
-                    for item in items:
-                        if item[address_key] != address:
-                            items.remove(item)
-                return items
-                        
+                return [json.loads(eventStorage.get_event(event.decode()).decode()) for event in events]                        
             else:
                 return [json.loads(event.decode()) for event in events]
 

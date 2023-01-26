@@ -17,17 +17,17 @@ async def initialize_db(alephStorageInstance):
     global eventIndexDB
     eventIndexDB = Storage(config.db_folder + '/event_index', create_if_missing=True,
                              event_driver=alephStorageInstance, extra_options={"register": True})
+    global eventWildcardIndexDB
+    eventWildcardIndexDB = Storage(config.db_folder + '/event_wildcard_index', create_if_missing=True,
+                             event_driver=alephStorageInstance, extra_options={"register": True})
     global fetcherStateDB
     fetcherStateDB = Storage(config.db_folder + '/fetcher_state', create_if_missing=True,
                              event_driver=alephStorageInstance, extra_options={"register": True})
-
     global indexingStatsDB
     indexingStatsDB = Storage(config.db_folder + '/indexing_stats', create_if_missing=True,
                              event_driver=alephStorageInstance, extra_options={"register": True})
-
     global tokenHolderDB
     tokenHolderDB = Storage(config.db_folder + '/token_holder', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
-
     global tokenHolderChangedDB
     tokenHolderChangedDB = Storage(config.db_folder + '/token_holder_changed', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
 
@@ -79,18 +79,27 @@ class eventStorage:
 
     @staticmethod
     def write_index(key, event):
+        # main index
         with eventIndexDB.write_batch() as wb:
-            for index_key in [event[index] for index in ["_event", "source", "operation_hash", "block_hash"]]:
-                if isinstance(index_key, dict):
-                    """ look into metadata for other field as index"""
-                    metadata_keys = ["pkh", "from", "to", "owner", "address"]
-                    for allowed_key in metadata_keys:
-                        if allowed_key in event["_event"]:
-                            index2_key = event["_event"][allowed_key]
-                            wb.put(f"{index2_key}_{key}".encode(), key.encode())
-                else:
+            for index_key in [event[index] for index in ["source", "operation_hash", "block_hash"]]:
+                wb.put(f"{index_key}_{key}".encode(), key.encode())
+            wb.write()
+
+        # wildcard index
+        with eventWildcardIndexDB.write_batch() as wb:
+            wildcard_index = ["pkh", "from", "to", "owner", "address", "sender"]
+            for index_key in [event["_event"] for index in wildcard_index]:
+                if isinstance(index_key, str):
+                    print("write extrat index", index_key, key)
                     wb.put(f"{index_key}_{key}".encode(), key.encode())
             wb.write()
+                    
+            #    """ look into metadata for other field as index"""
+            #    metadata_keys = ["pkh", "from", "to", "owner", "address"]
+            #    for allowed_key in metadata_keys:
+            #        if allowed_key in event["_event"]:
+            #            index2_key = event["_event"][allowed_key]
+            #            wb.put(f"{index2_key}_{key}".encode(), key.encode())
             
 
     @staticmethod
@@ -117,14 +126,18 @@ class eventStorage:
         return events
 
     @staticmethod
-    def get_events_iterator(reverse=True, index_address=None):
+    def get_events_iterator(reverse=True, index_address=None, index_name="main"):
         start = None
         stop = None
+
+        indexDB = eventIndexDB
+        if index_name == "wildcard":
+            indexDB = eventWildcardIndexDB
 
         if index_address is not None:
             start = "{}_{}".format(index_address, "0")
             stop = "{}_{}".format(index_address, "~")
-            return eventIndexDB.iterator(include_key=False, start=start.encode(), stop=stop.encode(), include_start=True, include_stop=True)
+            return indexDB.iterator(include_key=False, start=start.encode(), stop=stop.encode(), include_start=True, include_stop=True)
 
 
         return eventDB.iterator(include_key=False, reverse=reverse)

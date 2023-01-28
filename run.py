@@ -2,6 +2,7 @@ import os
 import sys
 import asyncio
 import threading
+import shutil
 from src.indexer import Indexer
 from src.config import config
 from src.graphql.server import app
@@ -49,20 +50,29 @@ async def start(loop, server = None):
         tasks.append(api_server)
 
     logger.info("initialize application")
+
+    # reset db reset_db file present
+    if os.path.isfile(f"{config.db_folder}/reset_db"):
+        shutil.rmtree(f"{config.db_folder}/indexing_stats", ignore_errors=True)
+        shutil.rmtree(f"{config.db_folder}/event", ignore_errors=True)
+        shutil.rmtree(f"{config.db_folder}/event_index", ignore_errors=True)
+        shutil.rmtree(f"{config.db_folder}/event_wildcard_index", ignore_errors=True)
+
     aleph_instance = await initialize_aleph_event_storage(app)
     await initialize_db(aleph_instance)
     logger.info("indexing are in waiting mode...")
     await aleph_instance.on_ready()
 
-    if config.reset_db:
-        print("reset db...")
+    # reindex the blocks if the database has been reset
+    if os.path.isfile(f"{config.db_folder}/reset_db"):
         await indexer._reset()
+        os.remove(f"{config.db_folder}/reset_db")
 
     if aleph_instance.get_mode() != "readonly":
-        logger.info("start indexing mode")
+        logger.info("start in indexing mode")
         tasks.append(prepare_intervals())
     else:
-        logger.info("start readonly mode")
+        logger.info("start in readonly mode")
     await asyncio.gather(*tasks)
 
 def background_run():

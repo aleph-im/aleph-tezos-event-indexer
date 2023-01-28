@@ -2,7 +2,6 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     db_folder: str = "/data/events"
-    reset_db: int = 0
     well_contract: str = "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw"
     until_block: int = 0
     rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"

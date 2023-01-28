@@ -34,7 +34,7 @@ async def initialize_db(alephStorageInstance):
 class eventStorage:
     @staticmethod
     def build_event_key(event):
-        return f"{str(event['block_level']).zfill(11)}_{event['block_hash']}_{event['operation_hash']}_{event['nonce']}"
+        return f"{str(event['block_level']).zfill(11)}_{event['operation_hash']}_{event['source']}_{event['nonce']}"
 
     @staticmethod
     def search_event(q):
@@ -88,19 +88,17 @@ class eventStorage:
         # wildcard index
         with eventWildcardIndexDB.write_batch() as wb:
             wildcard_index = ["pkh", "from", "to", "owner", "address", "sender"]
-            for index_key in [event["_event"] for index in wildcard_index]:
-                if isinstance(index_key, str):
-                    print("write extrat index", index_key, key)
-                    wb.put(f"{index_key}_{key}".encode(), key.encode())
-            wb.write()
-                    
-            #    """ look into metadata for other field as index"""
-            #    metadata_keys = ["pkh", "from", "to", "owner", "address"]
-            #    for allowed_key in metadata_keys:
-            #        if allowed_key in event["_event"]:
-            #            index2_key = event["_event"][allowed_key]
-            #            wb.put(f"{index2_key}_{key}".encode(), key.encode())
-            
+            for allowed_key in wildcard_index:
+                if not isinstance(event["_event"], dict):
+                    continue
+
+                if allowed_key in event["_event"]:
+                    index_key = event["_event"][allowed_key]
+                    if isinstance(index_key, str):
+                        print("write extra index", allowed_key, f"{index_key}_{key}")
+                        wb.put(f"{index_key}_{key}".encode(), key.encode())
+                        #wb.delete(f"{index_key}_{key}".encode())
+            wb.write()            
 
     @staticmethod
     def get_events(reverse=True, limit=100, skip=0, index_address=None):
@@ -281,3 +279,43 @@ class eventStorage:
     @staticmethod
     def delete_balance(key):
         return tokenHolderChangedDB.delete(key)
+
+    @staticmethod
+    def get_block_iterator():
+        return blockDB.iterator(include_key=False)
+
+    @staticmethod
+    async def recreate_events_index():
+        events = []
+        inter_counter = 0
+        for items in eventDB.iterator():
+            key = items[0].decode()
+            event = json.loads(items[1].decode())
+            event["block"] = json.loads(eventStorage.get_block(event["block_hash"]))
+            events.append(event)
+            inter_counter += 1
+            print("recreate index for event", key)
+            eventDB.delete(key.encode())
+            eventIndexDB.delete(key.encode())
+            if inter_counter > 50:
+                await eventStorage.save_events(events)
+                events = []
+
+        if len(events) > 0:
+            await eventStorage.save_events(events)            
+
+"""
+    @staticmethod
+    async def check_duplicated_events_operation_hash():
+        operation_hash = []
+        event_op = {}
+        for items in eventDB.iterator():
+            event = json.loads(items[1].decode())
+            if event["operation_hash"] in operation_hash:
+                print("Founded", event, "\n")
+                print(event_op[event["operation_hash"]])
+                exit()
+            else:
+                operation_hash.append(event["operation_hash"])
+                event_op[event["operation_hash"]] = event
+"""

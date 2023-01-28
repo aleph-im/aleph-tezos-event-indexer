@@ -69,7 +69,7 @@ class TezosClient:
         return event
 
     def create_event(self, internal_op):
-        if internal_op.get("type") == None or internal_op.get("payload") == None or internal_op.get("tag") == None:
+        if internal_op.get("type") == None or internal_op.get("payload") == None:
             return None
 
         event_parser = MichelsonType.match(internal_op["type"])
@@ -83,7 +83,7 @@ class TezosClient:
             except:
                 print("event decode failed =>", event)
                 event = internal_op["payload"]
-        return { "_kind": internal_op["tag"], "_event": event }
+        return { "_kind": internal_op.get("tag"), "_event": event }
 
     async def get_events(self, block, well_contract):
         events = []

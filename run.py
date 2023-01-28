@@ -54,6 +54,10 @@ async def start(loop, server = None):
     logger.info("indexing are in waiting mode...")
     await aleph_instance.on_ready()
 
+    if config.reset_db:
+        print("reset db...")
+        await indexer._reset()
+
     if aleph_instance.get_mode() != "readonly":
         logger.info("start indexing mode")
         tasks.append(prepare_intervals())

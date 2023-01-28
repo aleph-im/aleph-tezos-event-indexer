@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+import json
 from .utils.common import gather_with_concurrency
 from .utils.aleph_balance_tracker import monitor_process
 
@@ -150,12 +151,13 @@ class Indexer:
         for block in blocks:
             yield self.client.get_events(block, self.well_contract)
 
-    async def index(self, events):
+    async def index(self, events, check_events=True):
         if len(events) > 0:
             #await gather_with_concurrency(len(events), *self.storage.save_events(events))
             await self.storage.save_events(events)
             print(len(events), "saved")
-            task = asyncio.create_task(self.check_events(events))
+            if check_events:
+                task = asyncio.create_task(self.check_events(events))
 
     def get_balances(self, blocks):
         for block in blocks:
@@ -195,3 +197,13 @@ class Indexer:
                     continue
 
             self.storage.trust_event(event)
+
+    async def _reset(self):
+        counter = 0
+        for item in self.storage.get_block_iterator():
+            block = json.loads(item.decode())
+            events = await self.client.get_events(block, None)
+            counter += len(events)
+            await self.index(events, check_events=False)
+
+        print("Total events recreated", counter)

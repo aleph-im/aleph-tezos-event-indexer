@@ -6,6 +6,7 @@ from copy import deepcopy
 from ..config import config
 from .common import Storage
 import time
+import hashlib
 
 async def initialize_db(alephStorageInstance):
     global eventDB
@@ -46,6 +47,7 @@ class eventStorage:
         event: {block_hash, block_level, operation_hash, source, destination, event, metadata...}
         """
         key = eventStorage.build_event_key(event)
+        event["_id"] = hashlib.sha256(key.encode()).hexdigest()
         eventDB.put(key.encode(), json.dumps(event).encode())
         eventStorage.write_index(key, event)
 
@@ -58,6 +60,7 @@ class eventStorage:
                 blocks.append(event["block"])
                 del event["block"]
                 key = eventStorage.build_event_key(event)
+                event["_id"] = hashlib.sha256(key.encode()).hexdigest()                
                 wb.put(key.encode(), json.dumps(event).encode())
                 eventStorage.write_index(key, event)
         wb.write()
@@ -87,6 +90,7 @@ class eventStorage:
 
         # wildcard index
         with eventWildcardIndexDB.write_batch() as wb:
+            wb.put(event["_id"].encode(), key.encode())
             wildcard_index = ["pkh", "from", "to", "owner", "address", "sender"]
             for allowed_key in wildcard_index:
                 if not isinstance(event["_event"], dict):
@@ -242,6 +246,12 @@ class eventStorage:
     @staticmethod
     def get_event(key):
         return eventDB.get(key.encode())
+
+    @staticmethod
+    def get_event_by_id(_id):
+        event_key = eventWildcardIndexDB.get(_id.encode())
+        if event_key:
+            return json.loads(eventDB.get(event_key))
 
     @staticmethod
     async def save_balances(contract, balances):

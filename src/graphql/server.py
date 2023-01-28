@@ -148,6 +148,10 @@ class Query(graphene.ObjectType):
     async def resolve_stats(self, info, address):
         return await eventStorage.get_stats(address)
 
+    event = graphene.Field(types.Event, _id=graphene.String(description="Event _id", name="_id"))
+    async def resolve_event(self, info, _id):
+        return eventStorage.get_event_by_id(_id)
+
 def startGraphQLServer():
     app = FastAPI(docs_url="/__aleph_api_doc")
 

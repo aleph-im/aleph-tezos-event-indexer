@@ -16,6 +16,7 @@ class Event(ObjectType):
     timestamp = String()
     type = String()
     payload = GenericScalar()
+    _id = String(name="_id")
 
     def resolve_type(data, info):
         return data["_kind"]

@@ -167,7 +167,6 @@ class Indexer:
         if len(balances) > 0:
             await self.storage.save_balances(self.config.token_address, balances)
             await monitor_process()
-            
 
     def update_fetcher_state(self, recent_block = None, oldest_block = None):
         if recent_block is not None:

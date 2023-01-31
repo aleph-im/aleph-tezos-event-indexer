@@ -187,6 +187,9 @@ class TezosClient:
                     for _transfer in transfer["txs"]:
                         holders[_transfer["token_id"]].append(_transfer["to_"])
 
+                        if "from_" in transfer:
+                            holders[_transfer["token_id"]].append(transfer["from_"])
+
                 for burn_or_mint in txs["tokens"]:
                     holders[burn_or_mint["token_id"]].append(burn_or_mint["owner"])
 

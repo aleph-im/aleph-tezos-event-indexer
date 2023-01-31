@@ -29,6 +29,7 @@ async def initialize_db(alephStorageInstance):
                              event_driver=alephStorageInstance, extra_options={"register": True})
     global tokenHolderDB
     tokenHolderDB = Storage(config.db_folder + '/token_holder', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
+
     global tokenHolderChangedDB
     tokenHolderChangedDB = Storage(config.db_folder + '/token_holder_changed', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
 
@@ -91,7 +92,7 @@ class eventStorage:
         # wildcard index
         with eventWildcardIndexDB.write_batch() as wb:
             wb.put(event["_id"].encode(), key.encode())
-            wildcard_index = ["pkh", "from", "to", "owner", "address", "sender"]
+            wildcard_index = ["pkh", "from", "to", "owner", "address", "sender", "addr"]
             for allowed_key in wildcard_index:
                 if not isinstance(event["_event"], dict):
                     continue
@@ -269,7 +270,7 @@ class eventStorage:
                 if old_balance is not None and balance.get("balance") == old_balance:
                     continue
                 
-                wb.put(key.encode(), json.dumps({"ts": int(time.time()), "balance": balance.get("balance")}).encode())
+                wb.put(key.encode(), json.dumps({"ts": int(time.time()), "balance": balance.get("balance"), "block_level": balance.get("block_level")}).encode())
                 changed_balances.append({"key": key, "balance": balance})
         wb.write()
 
@@ -291,9 +292,13 @@ class eventStorage:
         return tokenHolderChangedDB.delete(key)
 
     @staticmethod
+    def get_token_holders():
+        return tokenHolderDB.iterator(include_key=False)
+
+    @staticmethod
     def get_block_iterator():
         return blockDB.iterator(include_key=False)
-
+    
     @staticmethod
     async def recreate_events_index():
         events = []

@@ -214,6 +214,6 @@ class TezosClient:
                 if type(response) is dict:
                     response = list(response.values())
                     balance = response[1]/10**18 # !Only for token_id 10
-                    balances.append({"address": address, "balance": balance, "token_id": token_id, "block_level": current_block_level})
-                
+                    balances.append({"address": address, "balance": balance, "token_id": token_id, "block_level": block["header"]["level"]})
+
         return balances

@@ -199,10 +199,24 @@ class Indexer:
 
     async def _reset(self):
         counter = 0
-        for item in self.storage.get_block_iterator():
-            block = json.loads(item.decode())
-            events = await self.client.get_events(block, None)
-            counter += len(events)
-            await self.index(events, check_events=False)
+        if "events" in self.config.objects:
+            for item in self.storage.get_block_iterator():
+                block = json.loads(item.decode())
+                events = await self.client.get_events(block, None)
+                counter += len(events)
+                await self.index(events, check_events=False)
+            print("Total events recreated", counter)
 
-        print("Total events recreated", counter)
+        counter = 0
+        block_ids = []
+        if "balances" in self.config.objects:
+            for holder in self.storage.get_token_holders():
+                holder = json.loads(holder.decode())
+                if holder["block_level"] in block_ids:
+                    continue
+                block = await self.client.get_block(holder["block_level"])
+                balances = await self.client.get_balances(block, self.config.token_address, self.config.token_ids)
+                counter += len(balances)
+                await self.index_balances(balances)
+                block_ids.append(holder["block_level"])
+            print("Total balances recreated", counter)

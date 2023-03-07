@@ -74,8 +74,9 @@ class TezosClient:
 
         event_parser = MichelsonType.match(internal_op["type"])
         event = event_parser.from_micheline_value(internal_op["payload"]).to_python_object()
-        if isinstance(event, dict):
-            event = self.decode_dict(event)
+
+        if isinstance(event, (dict, tuple, list)):
+            event = self.normalize(event)
 
         if isinstance(event, bytes):
             try:
@@ -121,13 +122,24 @@ class TezosClient:
                         return False
         return True
 
-    def decode_dict(self, d):
+    def normalize(self, d):
         result = {}
 
         if isinstance(d, list):
             for list_id, list_value in enumerate(d):
-                d[list_id] = self.decode_dict(list_value)
+                d[list_id] = self.normalize(list_value)
             return d
+        elif isinstance(d, tuple):
+            dlist = list(d)
+            dlist = self.normalize(dlist)
+            dtuple = tuple(dlist)
+            return dtuple
+        elif isinstance(d, bytes):
+            try:
+                return d.decode()
+            except:
+                return d.hex()
+
         elif not isinstance(d, dict):
             return d
 
@@ -143,15 +155,16 @@ class TezosClient:
             if isinstance(value, bytes):
                 value = value.decode()
             elif isinstance(value, dict):
-                value = self.decode_dict(value)
+                value = self.normalize(value)
             elif isinstance(value, list):
                 for list_id, list_value in enumerate(value):
-                    value[list_id] = self.decode_dict(list_value)
+                    value[list_id] = self.normalize(list_value)
             elif not isinstance(value, str):
                 # convert an unexpected custom type to a represented version
                 try:
                     value = repr(value)
                 except:
+                    print("Error: normalize failed")
                     pass
  
             result.update({key: value})

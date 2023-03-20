@@ -153,7 +153,10 @@ class TezosClient:
                     pass
  
             if isinstance(value, bytes):
-                value = value.decode()
+                try:
+                    value = value.decode()
+                except:
+                    value = value.hex()
             elif isinstance(value, dict):
                 value = self.normalize(value)
             elif isinstance(value, list):

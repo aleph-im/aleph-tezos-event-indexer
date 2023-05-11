@@ -75,9 +75,9 @@ class TezosClient:
         event_parser = MichelsonType.match(internal_op["type"])
         event = event_parser.from_micheline_value(internal_op["payload"]).to_python_object()
 
-        if isinstance(event, (dict, tuple, list)):
-            event = self.normalize(event)
-
+        #if isinstance(event, (dict, tuple, list)):
+        event = self.normalize(event)
+        
         if isinstance(event, bytes):
             try:
                 event = json.loads(event)

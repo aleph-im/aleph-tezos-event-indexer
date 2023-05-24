@@ -6,7 +6,7 @@ from src.indexer import Indexer
 from src.config import config
 from src.graphql.server import app
 from src.utils.common import setInterval
-# from fastapi.logger import logger
+from fastapi.logger import logger
 from src.tezos.client import TezosClient
 from src.storage.event import eventStorage, initialize_db
 from src.storage.common import initialize_aleph_event_storage

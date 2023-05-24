@@ -1,8 +1,8 @@
 version: "3.9"
 services:
-  tezos_devnet:
+  aleph-tezos-indexer:
     platform: linux/amd64
-    container_name: tezos_devnet
+    container_name: aleph-tezos-indexer
     build:
       context: ../
       dockerfile: docker/Dockerfile

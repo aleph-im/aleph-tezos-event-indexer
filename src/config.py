@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     pubsub: dict = None
     rpc_endpoint: str = "https://rpc.tzkt.io/ghostnet"
     trusted_rpc_endpoint: str = "https://rpc.tzkt.io/ghostnet"
-    # until_block: int = 0
+    until_block: int = 0
     well_contract: str = "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw"
 
     # balances

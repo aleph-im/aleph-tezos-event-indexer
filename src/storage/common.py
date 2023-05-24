@@ -2,13 +2,13 @@ import os
 import asyncio
 import json
 import base64
-from functools import wraps
 import plyvel
 import requests
 import hashlib
 from pydantic import BaseModel
 from typing import Optional, Any, Dict
 from ..config import config
+
 # from fastapi.logger import logger
 
 
@@ -70,7 +70,6 @@ class AlephStorageInstance:
         return {"status": "success"}
 
     async def pubsub_handler(self, event: MessageModel):
-        # db = get_db(event.namespace, event.message.dbname)
         db = self.get_target_db(event.namespace, event.message.dbname)
 
         if event.message.operation == "put":
@@ -93,7 +92,7 @@ class AlephStorageInstance:
             # logger.info("Load default config")
             await self.initialize_handler(SubscribeModel(**default))
 
-    async def check(self, force=False):
+    async def check(self):
         check_count = 0
         while self.is_ready() != True:
             await asyncio.sleep(3)
@@ -170,7 +169,7 @@ class AlephStorageInstance:
     def subscribe_db(self, dbname, instance):
         self.db_instance[dbname] = instance
 
-    def get_target_db(self, namespace, dbname):
+    def get_target_db(self, _namespace, dbname):
         if dbname in self.db_instance:
             return self.db_instance[dbname]
 

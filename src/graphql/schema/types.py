@@ -18,10 +18,10 @@ class Event(ObjectType):
     payload = GenericScalar()
     _id = String(name="_id")
 
-    def resolve_type(data, info):
+    def resolve_type(data):
         return data["_kind"]
 
-    def resolve_payload(data, info):
+    def resolve_payload(data):
         return data["_event"]
 
 

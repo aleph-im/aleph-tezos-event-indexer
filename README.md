@@ -51,3 +51,10 @@ python run.py
 ```bash
 docker-compose -f docker/docker-compose.yaml up
 ```
+
+## Errors on Pyvel :
+
+```bash
+export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
+export CPATH="$CPATH:$(brew --prefix)/include"
+```

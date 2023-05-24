@@ -35,7 +35,7 @@ class Query(graphene.ObjectType):
         block_hash=graphene.String(default_value=None, description="Block hash")
     )
 
-    async def resolve_events(self, info, **kwargs):
+    async def resolve_events(self, _info, **kwargs):
         limit = kwargs["limit"]
         reverse = kwargs["reverse"]
         skip = kwargs["skip"]
@@ -142,7 +142,7 @@ class Query(graphene.ObjectType):
 
     index_status = graphene.Field(types.IndexStatus)
 
-    async def resolve_index_status(self, info):
+    async def resolve_index_status(self, _info):
         fetcher_state = eventStorage.get_fetcher_state()
         oldest_block_level = fetcher_state["oldest_block"]["header"]["level"]
         status = "in_progress"
@@ -170,14 +170,14 @@ class Query(graphene.ObjectType):
         address=graphene.String(default_value=None, description="Account address"),
     )
 
-    async def resolve_stats(self, info, address):
+    async def resolve_stats(self, _info, address):
         return await eventStorage.get_stats(address)
 
     event = graphene.Field(
         types.Event, _id=graphene.String(description="Event _id", name="_id")
     )
 
-    async def resolve_event(self, info, _id):
+    async def resolve_event(self, _info, _id):
         return eventStorage.get_event_by_id(_id)
 
 

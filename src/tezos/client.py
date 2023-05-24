@@ -130,7 +130,7 @@ class TezosClient:
 
         return events
 
-    def check_operation(self, operation, operation_hash, trusted_contract):
+    def check_operation(self, operation, operation_hash, _trusted_contract):
         for tx in operation["contents"]:
             if "metadata" in tx and "internal_operation_results" in tx["metadata"]:
                 for internal_op in tx["metadata"]["internal_operation_results"]:

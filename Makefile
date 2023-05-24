@@ -13,5 +13,8 @@ test:
 run:
 	@python main.py
 
-run-docker:
+docker-build:
+	@docker build . -f docker/Dockerfile
+
+docker-run:
 	@docker-compose -f docker/docker-compose.yaml up

@@ -1,6 +1,6 @@
-from graphene import ObjectType, String, Float, Int, List, JSONString, Field, Boolean
+from graphene import ObjectType, String, Int, Field, Boolean
 from graphene.types.generic import GenericScalar
-import json
+
 
 class Event(ObjectType):
     class Meta:
@@ -24,10 +24,12 @@ class Event(ObjectType):
     def resolve_payload(data, info):
         return data["_event"]
 
+
 class IndexStatus(ObjectType):
     oldest_block = String()
     recent_block = String()
     status = String()
+
 
 class Stats(ObjectType):
     class Meta:

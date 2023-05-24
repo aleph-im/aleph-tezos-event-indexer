@@ -1,6 +1,5 @@
 import asyncio
 import aiohttp
-import time
 from pytezos.michelson.types import MichelsonType
 from pytezos.michelson.parse import michelson_to_micheline
 from pytezos.operation.group import OperationGroup
@@ -11,12 +10,17 @@ from collections import defaultdict
 
 import traceback
 
+
 class TezosClient:
     def __init__(self, config):
         self.endpoint = config.rpc_endpoint
-        self.event_parser = MichelsonType.match(michelson_to_micheline('pair (string %type) (pair (string %format) (bytes %metadata))'))
+        self.event_parser = MichelsonType.match(
+            michelson_to_micheline(
+                "pair (string %type) (pair (string %format) (bytes %metadata))"
+            )
+        )
 
-    async def get_json(self, url: str, status_codes=[200], retry = 10):
+    async def get_json(self, url: str, status_codes=[200], retry=10):
         print("fetch...", url)
         async with aiohttp.ClientSession() as session:
             try:
@@ -62,10 +66,10 @@ class TezosClient:
         event = self.event_parser.unpack(bytes.fromhex(event_bytes)).to_python_object()
 
         # Second unpacking to get the data from the bytes
-        data_parser = MichelsonType.match(michelson_to_micheline(event['format']))
-        event['metadata'] = data_parser.unpack(event['metadata']).to_python_object()
+        data_parser = MichelsonType.match(michelson_to_micheline(event["format"]))
+        event["metadata"] = data_parser.unpack(event["metadata"]).to_python_object()
         if isinstance(event["metadata"], unit):
-            event['metadata'] = None
+            event["metadata"] = None
         return event
 
     def create_event(self, internal_op):
@@ -73,43 +77,56 @@ class TezosClient:
             return None
 
         event_parser = MichelsonType.match(internal_op["type"])
-        event = event_parser.from_micheline_value(internal_op["payload"]).to_python_object()
+        event = event_parser.from_micheline_value(
+            internal_op["payload"]
+        ).to_python_object()
 
-        #if isinstance(event, (dict, tuple, list)):
+        # if isinstance(event, (dict, tuple, list)):
         event = self.normalize(event)
-        
+
         if isinstance(event, bytes):
             try:
                 event = json.loads(event)
             except:
                 print("event decode failed =>", event)
                 event = internal_op["payload"]
-        return { "_kind": internal_op.get("tag"), "_event": event }
+        return {"_kind": internal_op.get("tag"), "_event": event}
 
     async def get_events(self, block, well_contract):
         events = []
         for operationsArr in block["operations"]:
             for operation in operationsArr:
-                for tx in operation['contents']:
-                    if 'metadata' in tx and 'internal_operation_results' in tx['metadata']:
-                        for internal_op in tx['metadata']['internal_operation_results']:
-                            if internal_op["kind"] != "event" or internal_op['result']['status'] != 'applied':
+                for tx in operation["contents"]:
+                    if (
+                        "metadata" in tx
+                        and "internal_operation_results" in tx["metadata"]
+                    ):
+                        for internal_op in tx["metadata"]["internal_operation_results"]:
+                            if (
+                                internal_op["kind"] != "event"
+                                or internal_op["result"]["status"] != "applied"
+                            ):
                                 continue
-                            #if internal_op['source'] !== __FILTER_BY_SOURCE__
+                            # if internal_op['source'] !== __FILTER_BY_SOURCE__
 
                             _event = self.create_event(internal_op)
                             if _event is None:
                                 continue
-                            events.append({**{
-                                "nonce": internal_op["nonce"],
-                                "timestamp": block["header"]["timestamp"],
-                                "block_hash": block['hash'],
-                                "block_level": block["header"]["level"],
-                                "operation_hash": operation["hash"],
-                                "source": internal_op["source"],
-                                "block": block,
-                                "verified": False
-                            },**_event})
+                            events.append(
+                                {
+                                    **{
+                                        "nonce": internal_op["nonce"],
+                                        "timestamp": block["header"]["timestamp"],
+                                        "block_hash": block["hash"],
+                                        "block_level": block["header"]["level"],
+                                        "operation_hash": operation["hash"],
+                                        "source": internal_op["source"],
+                                        "block": block,
+                                        "verified": False,
+                                    },
+                                    **_event,
+                                }
+                            )
 
         return events
 
@@ -117,7 +134,14 @@ class TezosClient:
         for tx in operation["contents"]:
             if "metadata" in tx and "internal_operation_results" in tx["metadata"]:
                 for internal_op in tx["metadata"]["internal_operation_results"]:
-                    op = OperationGroup(protocol=operation["protocol"], branch=operation["branch"], chain_id=operation["chain_id"], contents=operation["contents"], signature=operation["signature"], context=pytezos)
+                    op = OperationGroup(
+                        protocol=operation["protocol"],
+                        branch=operation["branch"],
+                        chain_id=operation["chain_id"],
+                        contents=operation["contents"],
+                        signature=operation["signature"],
+                        context=pytezos,
+                    )
                     if op.hash() != operation_hash:
                         return False
         return True
@@ -151,7 +175,7 @@ class TezosClient:
                     key = repr(key)
                 except:
                     pass
- 
+
             if isinstance(value, bytes):
                 try:
                     value = value.decode()
@@ -169,7 +193,7 @@ class TezosClient:
                 except:
                     print("Error: normalize failed")
                     pass
- 
+
             result.update({key: value})
         return result
 
@@ -178,14 +202,21 @@ class TezosClient:
         for tx in op["contents"]:
             if tx["kind"] == "transaction" and tx["destination"] == token_cls.address:
                 if tx["parameters"]["entrypoint"] == "transfer":
-                    txs["transfer"] += token_cls.transfer.decode(tx["parameters"]["value"])["transfer"]
+                    txs["transfer"] += token_cls.transfer.decode(
+                        tx["parameters"]["value"]
+                    )["transfer"]
 
             # mint or burn
             if "metadata" in tx and "internal_operation_results" in tx["metadata"]:
                 for internal_op in tx["metadata"]["internal_operation_results"]:
-                    if internal_op["kind"] == "transaction" and internal_op["destination"] == token_cls.address:
+                    if (
+                        internal_op["kind"] == "transaction"
+                        and internal_op["destination"] == token_cls.address
+                    ):
                         if internal_op["parameters"]["entrypoint"] == "tokens":
-                            decoded = token_cls.tokens.decode(internal_op["parameters"]["value"])
+                            decoded = token_cls.tokens.decode(
+                                internal_op["parameters"]["value"]
+                            )
                             if decoded.get("mint_tokens"):
                                 txs["tokens"] += decoded.get("mint_tokens")
                             if decoded.get("burn_tokens"):
@@ -222,14 +253,20 @@ class TezosClient:
             if token_holders is None:
                 continue
 
-            current_block = await self.get_block("head")
-            current_block_level = current_block["header"]["level"]
-            
             for address in list(set(token_holders)):
-                response = token_cls.balance_of(requests=[{"owner": address, "token_id": token_id}], callback=None).callback_view()[0]
+                response = token_cls.balance_of(
+                    requests=[{"owner": address, "token_id": token_id}], callback=None
+                ).callback_view()[0]
                 if type(response) is dict:
                     response = list(response.values())
-                    balance = response[1]/10**18 # !Only for token_id 10
-                    balances.append({"address": address, "balance": balance, "token_id": token_id, "block_level": block["header"]["level"]})
+                    balance = response[1] / 10**18  # !Only for token_id 10
+                    balances.append(
+                        {
+                            "address": address,
+                            "balance": balance,
+                            "token_id": token_id,
+                            "block_level": block["header"]["level"],
+                        }
+                    )
 
         return balances

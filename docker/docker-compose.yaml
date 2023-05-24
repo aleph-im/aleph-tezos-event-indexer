@@ -1,35 +1,21 @@
-version: '3'
+version: "3.9"
 services:
   tezos_devnet:
-    image: python:3.10-buster
-    restart: unless-stopped
-    ports: 
+    platform: linux/amd64
+    container_name: tezos_devnet
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    # restart: unless-stopped
+    restart: no
+    ports:
       - 8090:8000
-    environment:
-      - DB_FOLDER=/data
-      - RPC_ENDPOINT=__ENDPOINT_A__
-      - TRUSTED_RPC_ENDPOINT=__ENDPOINT_B__
-      - WELL_CONTRACT=__OPTIONAL__WELL_CONTRACT__ADDRESS__
-      - UNTIL_BLOCK=__UNTIL_BLOCK__
-      - PORT=8000
-      - CONCURRENT_JOB=10
-      - BATCH_SIZE=50
-      #- PUBSUB=__OPTIONAL__
-    working_dir: /opt/app
-    command:
-      - /bin/sh
-      - -c
-      - |
-        apt-get update && apt-get upgrade -y
-        apt-get install libsodium-dev libsecp256k1-dev libgmp-dev -y
-        pip install -r requirements.txt
-        python run.py
-    volumes:
-      - ./build:/opt/app
-      - type: bind
-        source: __LOCAL_DATA_DIR__
-        target: /data
-# OPTIONAL
-#networks:
-#  __network_name__:
-#    external: true
+    # environment:
+    #   - DB_FOLDER=/data
+    #   - RPC_ENDPOINT=__ENDPOINT_A__
+    #   - TRUSTED_RPC_ENDPOINT=__ENDPOINT_B__
+    #   - WELL_CONTRACT=__OPTIONAL__WELL_CONTRACT__ADDRESS__
+    #   - UNTIL_BLOCK=__UNTIL_BLOCK__
+    #   - PORT=8000
+    #   - CONCURRENT_JOB=10
+    #   - BATCH_SIZE=50

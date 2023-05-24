@@ -1,21 +1,23 @@
 import os
 import sys
 import asyncio
-import threading
 import shutil
 from src.indexer import Indexer
 from src.config import config
 from src.graphql.server import app
 from src.utils.common import setInterval
-from fastapi.logger import logger
+# from fastapi.logger import logger
 from src.tezos.client import TezosClient
 from src.storage.event import eventStorage, initialize_db
 from src.storage.common import initialize_aleph_event_storage
+
 os.environ["TZ"] = "UTC"
 
 running = False
 tezosClient = TezosClient(config)
 indexer = Indexer(tezosClient, eventStorage, config)
+
+
 async def _run():
     global indexer
     logger.info("interval run event")
@@ -27,6 +29,7 @@ async def _run():
     await indexer.run()
     running = False
 
+
 async def prepare_intervals():
     logger.info("setting interval")
     try:
@@ -36,13 +39,15 @@ async def prepare_intervals():
         logger.exception("Can't setup recurring indexing!")
         shutdown()
 
+
 def shutdown():
-    logger.info('bye, exiting in a minute...')
+    logger.info("bye, exiting in a minute...")
     for task in asyncio.all_tasks():
         task.cancel()
     sys.exit()
 
-async def start(loop, server = None):
+
+async def start(loop, server=None):
     asyncio.set_event_loop(loop)
     tasks = []
     if server:
@@ -75,9 +80,11 @@ async def start(loop, server = None):
         logger.info("start in readonly mode")
     await asyncio.gather(*tasks)
 
+
 def background_run():
     loop = asyncio.new_event_loop()
     asyncio.gather(start(loop, None))
+
 
 # start with uvicorn commandline
 if __name__ == "run":
@@ -87,6 +94,7 @@ if __name__ == "run":
 # start from python commandline
 if __name__ == "__main__":
     import uvicorn
+
     loop = asyncio.new_event_loop()
     _config = uvicorn.Config(app=app, loop=loop, host=config.host, port=config.port)
     server = uvicorn.Server(_config)

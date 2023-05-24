@@ -1,0 +1,6 @@
+.env.default
+.gitignore
+docker/
+LICENSE
+Makefile
+README.md

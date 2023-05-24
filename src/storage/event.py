@@ -1,5 +1,3 @@
-import asyncio
-import plyvel
 import json
 import itertools
 from copy import deepcopy
@@ -8,30 +6,66 @@ from .common import Storage
 import time
 import hashlib
 
+
 async def initialize_db(alephStorageInstance):
     global eventDB
-    eventDB = Storage(config.db_folder + '/event', create_if_missing=True,
-                             event_driver=alephStorageInstance, extra_options={"register": True})
+    eventDB = Storage(
+        config.db_folder + "/event",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
     global blockDB
-    blockDB = Storage(config.db_folder + '/block', create_if_missing=True,
-                             event_driver=alephStorageInstance, extra_options={"register": True})
+    blockDB = Storage(
+        config.db_folder + "/block",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
     global eventIndexDB
-    eventIndexDB = Storage(config.db_folder + '/event_index', create_if_missing=True,
-                             event_driver=alephStorageInstance, extra_options={"register": True})
+    eventIndexDB = Storage(
+        config.db_folder + "/event_index",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
     global eventWildcardIndexDB
-    eventWildcardIndexDB = Storage(config.db_folder + '/event_wildcard_index', create_if_missing=True,
-                             event_driver=alephStorageInstance, extra_options={"register": True})
+    eventWildcardIndexDB = Storage(
+        config.db_folder + "/event_wildcard_index",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
     global fetcherStateDB
-    fetcherStateDB = Storage(config.db_folder + '/fetcher_state', create_if_missing=True,
-                             event_driver=alephStorageInstance, extra_options={"register": True})
+    fetcherStateDB = Storage(
+        config.db_folder + "/fetcher_state",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
     global indexingStatsDB
-    indexingStatsDB = Storage(config.db_folder + '/indexing_stats', create_if_missing=True,
-                             event_driver=alephStorageInstance, extra_options={"register": True})
+    indexingStatsDB = Storage(
+        config.db_folder + "/indexing_stats",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
     global tokenHolderDB
-    tokenHolderDB = Storage(config.db_folder + '/token_holder', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
+    tokenHolderDB = Storage(
+        config.db_folder + "/token_holder",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
 
     global tokenHolderChangedDB
-    tokenHolderChangedDB = Storage(config.db_folder + '/token_holder_changed', create_if_missing=True, event_driver=alephStorageInstance, extra_options={"register": True})
+    tokenHolderChangedDB = Storage(
+        config.db_folder + "/token_holder_changed",
+        create_if_missing=True,
+        event_driver=alephStorageInstance,
+        extra_options={"register": True},
+    )
+
 
 class eventStorage:
     @staticmethod
@@ -55,13 +89,13 @@ class eventStorage:
     @staticmethod
     async def write_batch(events):
         events_copy = deepcopy(events)
-        blocks=[]
+        blocks = []
         with eventDB.write_batch() as wb:
             for event in events_copy:
                 blocks.append(event["block"])
                 del event["block"]
                 key = eventStorage.build_event_key(event)
-                event["_id"] = hashlib.sha256(key.encode()).hexdigest()                
+                event["_id"] = hashlib.sha256(key.encode()).hexdigest()
                 wb.put(key.encode(), json.dumps(event).encode())
                 eventStorage.write_index(key, event)
         wb.write()
@@ -78,14 +112,16 @@ class eventStorage:
     @staticmethod
     async def save_events(events):
         await eventStorage.write_batch(events)
-        #task = asyncio.create_task(eventStorage.do_stats(events))
+        # task = asyncio.create_task(eventStorage.do_stats(events))
         await eventStorage.do_stats(events)
 
     @staticmethod
     def write_index(key, event):
         # main index
         with eventIndexDB.write_batch() as wb:
-            for index_key in [event[index] for index in ["source", "operation_hash", "block_hash"]]:
+            for index_key in [
+                event[index] for index in ["source", "operation_hash", "block_hash"]
+            ]:
                 wb.put(f"{index_key}_{key}".encode(), key.encode())
             wb.write()
 
@@ -102,8 +138,8 @@ class eventStorage:
                     if isinstance(index_key, str):
                         print("write extra index", allowed_key, f"{index_key}_{key}")
                         wb.put(f"{index_key}_{key}".encode(), key.encode())
-                        #wb.delete(f"{index_key}_{key}".encode())
-            wb.write()            
+                        # wb.delete(f"{index_key}_{key}".encode())
+            wb.write()
 
     @staticmethod
     def get_events(reverse=True, limit=100, skip=0, index_address=None):
@@ -114,15 +150,21 @@ class eventStorage:
         if index_address is not None:
             start = "{}_{}".format(index_address, "0")
             stop = "{}_{}".format(index_address, "~")
-            items = eventIndexDB.iterator(include_key=False, start=start.encode(), stop=stop.encode(), include_start=True, include_stop=True)
-            for item in enumerate(itertools.islice(items, skip, (limit+skip))):
+            items = eventIndexDB.iterator(
+                include_key=False,
+                start=start.encode(),
+                stop=stop.encode(),
+                include_start=True,
+                include_stop=True,
+            )
+            for item in enumerate(itertools.islice(items, skip, (limit + skip))):
                 events.append(json.loads(eventDB.get(item[1]).decode()))
 
-            #@TODO fix reverse
+            # @TODO fix reverse
             return events
 
         items = eventDB.iterator(include_key=False, reverse=reverse)
-        for item in enumerate(itertools.islice(items, skip, (limit+skip))):
+        for item in enumerate(itertools.islice(items, skip, (limit + skip))):
             event = json.loads(item[1].decode())
             events.append(event)
 
@@ -140,8 +182,13 @@ class eventStorage:
         if index_address is not None:
             start = "{}_{}".format(index_address, "0")
             stop = "{}_{}".format(index_address, "~")
-            return indexDB.iterator(include_key=False, start=start.encode(), stop=stop.encode(), include_start=True, include_stop=True)
-
+            return indexDB.iterator(
+                include_key=False,
+                start=start.encode(),
+                stop=stop.encode(),
+                include_start=True,
+                include_stop=True,
+            )
 
         return eventDB.iterator(include_key=False, reverse=reverse)
 
@@ -163,14 +210,14 @@ class eventStorage:
 
     @staticmethod
     def get_fetcher_state():
-        state = fetcherStateDB.get('fetcher_state'.encode())
+        state = fetcherStateDB.get("fetcher_state".encode())
         if state is not None:
             return json.loads(state.decode())
         else:
             return {"recent_block": None, "oldest_block": None}
 
     @staticmethod
-    def update_fetcher_state(recent_block = None, oldest_block = None):
+    def update_fetcher_state(recent_block=None, oldest_block=None):
         fetcher_state = eventStorage.get_fetcher_state()
         if fetcher_state is None:
             fetcher_state = {"recent_block": None, "oldest_block": None}
@@ -180,7 +227,7 @@ class eventStorage:
         if oldest_block is not None:
             fetcher_state["oldest_block"] = oldest_block
 
-        fetcherStateDB.put('fetcher_state'.encode(), json.dumps(fetcher_state).encode())
+        fetcherStateDB.put("fetcher_state".encode(), json.dumps(fetcher_state).encode())
 
     @staticmethod
     def untrust_event(event):
@@ -206,7 +253,9 @@ class eventStorage:
         gc = indexingStatsDB.get("global_counter".encode())
         if gc is None:
             gc = "0".encode()
-        indexingStatsDB.put("global_counter".encode(), str(int(gc.decode()) + count).encode())
+        indexingStatsDB.put(
+            "global_counter".encode(), str(int(gc.decode()) + count).encode()
+        )
 
         accounts = {}
         for event in events:
@@ -219,7 +268,10 @@ class eventStorage:
             ac = indexingStatsDB.get("{}_counter".format(account).encode())
             if ac is None:
                 ac = "0".encode()
-            indexingStatsDB.put("{}_counter".format(account).encode(), str(int(ac.decode()) + accounts[account]).encode())
+            indexingStatsDB.put(
+                "{}_counter".format(account).encode(),
+                str(int(ac.decode()) + accounts[account]).encode(),
+            )
 
     @staticmethod
     async def get_stats(address=None):
@@ -237,7 +289,7 @@ class eventStorage:
         return {
             "total_events": gc.decode(),
             "first_event": first_event[0] if len(first_event) > 0 else None,
-            "last_event": last_event[0] if len(last_event) > 0 else None
+            "last_event": last_event[0] if len(last_event) > 0 else None,
         }
 
     @staticmethod
@@ -269,8 +321,17 @@ class eventStorage:
                     continue
                 if old_balance is not None and balance.get("balance") == old_balance:
                     continue
-                
-                wb.put(key.encode(), json.dumps({"ts": int(time.time()), "balance": balance.get("balance"), "block_level": balance.get("block_level")}).encode())
+
+                wb.put(
+                    key.encode(),
+                    json.dumps(
+                        {
+                            "ts": int(time.time()),
+                            "balance": balance.get("balance"),
+                            "block_level": balance.get("block_level"),
+                        }
+                    ).encode(),
+                )
                 changed_balances.append({"key": key, "balance": balance})
         wb.write()
 
@@ -281,7 +342,12 @@ class eventStorage:
     async def save_changed_balances(balances):
         with tokenHolderChangedDB.write_batch() as wb:
             for changed in balances:
-                wb.put(changed.get("key").encode(), json.dumps({"ts": int(time.time()), "account": changed.get("balance")}).encode())
+                wb.put(
+                    changed.get("key").encode(),
+                    json.dumps(
+                        {"ts": int(time.time()), "account": changed.get("balance")}
+                    ).encode(),
+                )
 
     @staticmethod
     def get_changed_balances():
@@ -298,7 +364,7 @@ class eventStorage:
     @staticmethod
     def get_block_iterator():
         return blockDB.iterator(include_key=False)
-    
+
     @staticmethod
     async def recreate_events_index():
         events = []
@@ -317,20 +383,4 @@ class eventStorage:
                 events = []
 
         if len(events) > 0:
-            await eventStorage.save_events(events)            
-
-"""
-    @staticmethod
-    async def check_duplicated_events_operation_hash():
-        operation_hash = []
-        event_op = {}
-        for items in eventDB.iterator():
-            event = json.loads(items[1].decode())
-            if event["operation_hash"] in operation_hash:
-                print("Founded", event, "\n")
-                print(event_op[event["operation_hash"]])
-                exit()
-            else:
-                operation_hash.append(event["operation_hash"])
-                event_op[event["operation_hash"]] = event
-"""
+            await eventStorage.save_events(events)

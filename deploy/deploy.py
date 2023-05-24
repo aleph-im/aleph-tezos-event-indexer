@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import inspect
 
 from aleph_client.__main__ import _load_account
 from aleph_client.conf import settings
@@ -9,23 +8,20 @@ from aleph_client.synchronous import create_program, create_store
 from aleph_client.utils import create_archive
 from aleph_client.types import StorageEnum
 from aleph_message.models.program import Encoding
-from aleph_message.models import StoreMessage, ProgramMessage, StoreContent
-from aleph_message.models.program import ProgramContent, CodeContent, FunctionEnvironment, FunctionRuntime, MachineResources
 
 from typer import echo
 
 logger = logging.getLogger(__name__)
 
-
-VENV_MESSAGE = "1000ebe0b61e41d5e23c10f6eb140e837188158598049829f2820f830139fc7d"
-VENV_IPFS = "QmXfqx52eeYczhsfFYdWMUAnpcKXiofHgGmpNs7Hm29Ndw"
-
-LIB_MESSAGE = "d7cecdeccc916280f8bcbf0c0e82c3638332da69ece2cbc806f9103a0f8befea"
-LIB_IPFS = "QmSZEwAAkZkoNPhMVuc5A8rwonQJhFdknC3LygDrGLg2mg"
-
+BUILD_PATH = "./build"
 CHANNEL = "TEZOS"
 
-BUILD_PATH = "./build"
+LIB_IPFS = "QmSZEwAAkZkoNPhMVuc5A8rwonQJhFdknC3LygDrGLg2mg"
+LIB_MESSAGE = "d7cecdeccc916280f8bcbf0c0e82c3638332da69ece2cbc806f9103a0f8befea"
+
+VENV_IPFS = "QmXfqx52eeYczhsfFYdWMUAnpcKXiofHgGmpNs7Hm29Ndw"
+VENV_MESSAGE = "1000ebe0b61e41d5e23c10f6eb140e837188158598049829f2820f830139fc7d"
+
 
 def create_program_squashfs(path, name):
     (archive_path, encoding) = create_archive(path)
@@ -49,13 +45,11 @@ def upload_program(account, program_squashfs_path: str) -> str:
             ref=None,
         )
         logger.debug("Upload finished")
-        #echo(f"{json.dumps(store_message.content.__dict__, indent=4)}")
         echo(f"{json.dumps(store_message.dict(), indent=4)}")
-        #print_result(store_message)
         program_ref = store_message.item_hash
     return program_ref
-        
-        
+
+
 def main():
     app_directory = "./"
     name_version = "tezos_v0"
@@ -66,7 +60,6 @@ def main():
     assert os.path.isfile(program_squashfs_path)
 
     program_ref = upload_program(account, program_squashfs_path)
-    #runtime = settings.DEFAULT_RUNTIME_ID
     runtime = "6cc94ab5db14dff4d2f01939a8f1424012bbe0e748be1ec6486ed93d9fdd2680"
     print("Run time default", settings.DEFAULT_RUNTIME_ID)
 
@@ -88,24 +81,24 @@ def main():
             "mount": "/data",
             "name": "data",
             "size_mib": 512,
-            "persistence": "host"
+            "persistence": "host",
         },
     ]
 
     environment_variables = {
-      "LD_LIBRARY_PATH": "/opt/extra_lib",
-      "DB_FOLDER": "/data",
-      "RPC_ENDPOINT": "https://rpc.tzkt.io/ithacanet",
-      "TRUSTED_RPC_ENDPOINT": "https://rpc.tzkt.io/ithacanet",
-      "WELL_CONTRACT": "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw",
-      "PORT": "8080",
-      "CONCURRENT_JOB": 5,
-      "BATCH_SIZE": 30,
-      "UNTIL_BLOCK": 201396,
-      "PUBSUB": '{"namespace": "tznms","uuid": "tz_uid_1","hook_url": "_domain_or_ip_addess","pubsub_server": "domain_or_ip_address","secret_shared_key": "112secret_key","channel": "storage","running_mode": "readonly"}'
+        "LD_LIBRARY_PATH": "/opt/extra_lib",
+        "DB_FOLDER": "/data",
+        "RPC_ENDPOINT": "https://rpc.tzkt.io/ghostnet",
+        "TRUSTED_RPC_ENDPOINT": "https://rpc.tzkt.io/ghostnet",
+        "WELL_CONTRACT": "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw",
+        "PORT": "8080",
+        "CONCURRENT_JOB": 5,
+        "BATCH_SIZE": 30,
+        "UNTIL_BLOCK": 201396,
+        "PUBSUB": '{"namespace": "tznms","uuid": "tz_uid_1","hook_url": "_domain_or_ip_addess","pubsub_server": "domain_or_ip_address","secret_shared_key": "112secret_key","channel": "storage","running_mode": "readonly"}',
     }
 
-    aleph_api = "https://official.aleph.im"
+    aleph_api = "https://api2.aleph.im"
     result = create_program(
         account=account,
         program_ref=program_ref,

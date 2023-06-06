@@ -15,22 +15,6 @@ If running locally without Docker :
 
 - Python 3.11.3
     - Pip 23.1.2
-        - pytezos 3.9.0
-        - Jinja2 3.1.2
-        - aiohttp 3.8.4
-        - asyncio 3.4.3
-        - graphene 3.2.2
-        - graphql-core 3.2.3
-        - plyvel 1.5.0
-        - pydantic 1.10.7
-        - python-dotenv 1.0.0
-        - fastapi 0.95.2
-        - uvicorn 0.22.0
-        - starlette 0.27.0
-        - starlette-graphene3 0.6.0
-        - mnemonic 0.20
-        - aleph-client 0.5.1
-        - web3 6.4.0
 
 The above modules can be installed via the following command :
 

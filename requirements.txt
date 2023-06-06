@@ -1,17 +1,1 @@
-aiohttp==3.8.4
-aleph-client==0.5.1
-asyncio==3.4.3
-fastapi==0.95.2
-graphene==3.2.2
-graphql-core==3.2.3
-Jinja2==3.1.2
-leveldb==0.201
-mnemonic==0.20
-plyvel==1.5.0
-pydantic==1.9.2
 pytezos==3.9.0
-python-dotenv==1.0.0
-starlette-graphene3==0.6.0
-starlette==0.27.0
-uvicorn==0.22.0
-web3==6.4.0

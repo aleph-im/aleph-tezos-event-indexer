@@ -1,1 +1,16 @@
-pytezos==3.9.0
+pytezos==3.4.1
+Jinja2==3.1.2
+aiohttp==3.8.3
+asyncio
+graphene==3.2.1
+graphql-core==3.2.3
+plyvel
+pydantic
+python-dotenv
+fastapi==0.89.1
+uvicorn==0.20.0
+starlette==0.22.0
+starlette-graphene3==0.6.0
+mnemonic
+aleph-client
+web3==5.27.0

@@ -1,21 +1,30 @@
+# Specify the version of the Compose file format
 version: "3.9"
+
 services:
-  aleph-tezos-indexer:
+  # Define a service named 'aleph-tezos-event-indexer'
+  aleph-tezos-event-indexer:
+    # Specify the platform for the service's container
     platform: linux/amd64
-    container_name: aleph-tezos-indexer
+    # Set the name of the container to 'aleph-tezos-event-indexer'
+    container_name: aleph-tezos-event-indexer
     build:
+      # Set the build context directory to the parent directory
       context: ../
+      # Specify the Dockerfile to use for building the image
       dockerfile: docker/Dockerfile
-    # restart: unless-stopped
-    restart: no
+    # Set the restart policy for the container
+    restart: unless-stopped
+    # Map the host port 8090 to the container port 8000
     ports:
       - 8090:8000
-    # environment:
-    #   - DB_FOLDER=/data
-    #   - RPC_ENDPOINT=__ENDPOINT_A__
-    #   - TRUSTED_RPC_ENDPOINT=__ENDPOINT_B__
-    #   - WELL_CONTRACT=__OPTIONAL__WELL_CONTRACT__ADDRESS__
-    #   - UNTIL_BLOCK=__UNTIL_BLOCK__
-    #   - PORT=8000
-    #   - CONCURRENT_JOB=10
-    #   - BATCH_SIZE=50
+    # Set environment variables for the container
+    environment:
+      - DB_FOLDER=/data
+      - RPC_ENDPOINT=__ENDPOINT_A__
+      - TRUSTED_RPC_ENDPOINT=__ENDPOINT_B__
+      - WELL_CONTRACT=__OPTIONAL__WELL_CONTRACT__ADDRESS__
+      - UNTIL_BLOCK=__UNTIL_BLOCK__
+      - PORT=8000
+      - CONCURRENT_JOB=10
+      - BATCH_SIZE=50

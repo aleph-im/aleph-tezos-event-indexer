@@ -14,17 +14,11 @@ services:
       # Specify the Dockerfile to use for building the image
       dockerfile: docker/Dockerfile
     # Set the restart policy for the container
-    restart: unless-stopped
+    # restart: unless-stopped
+    restart: no
     # Map the host port 8090 to the container port 8000
     ports:
       - 8090:8000
     # Set environment variables for the container
-    environment:
-      - DB_FOLDER=/data
-      - RPC_ENDPOINT=__ENDPOINT_A__
-      - TRUSTED_RPC_ENDPOINT=__ENDPOINT_B__
-      - WELL_CONTRACT=__OPTIONAL__WELL_CONTRACT__ADDRESS__
-      - UNTIL_BLOCK=__UNTIL_BLOCK__
-      - PORT=8000
-      - CONCURRENT_JOB=10
-      - BATCH_SIZE=50
+    env_file:
+    - ../.env

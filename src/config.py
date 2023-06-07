@@ -4,8 +4,8 @@ class Settings(BaseSettings):
     db_folder: str = "/data/events"
     well_contract: str = "KT1ReVgfaUqHzWWiNRfPXQxf7TaBLVbxrztw"
     until_block: int = 0
-    rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"
-    trusted_rpc_endpoint: str = "https://rpc.tzkt.io/ithacanet"
+    rpc_endpoint: str = "https://rpc.tzkt.io/ghostnet"
+    trusted_rpc_endpoint: str = "https://rpc.tzkt.io/ghostnet"
     host: str = "127.0.0.1"
     port: int = 8080
     concurrent_job: int = 2

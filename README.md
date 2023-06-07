@@ -40,13 +40,23 @@ docker-compose -f docker/docker-compose.yaml up
 
 ## Known issues :
 
-### Python 3.11 incompatibility
+### Python 3.11 and newer package versions incompatibility
 
-Some libraries depend on eachother to 
+Package version management fails on Python 3.11 (and higher) because of dependencies between packages.
+Updating some package versions results in the same errors too.
+
+The following issues appear when either upgrading the package versions, or upgrading Python's version.
+- https://foss.heptapod.net/pypy/pypy/-/issues/2687
+- https://github.com/wbolster/plyvel/issues/100
+- https://github.com/tiangolo/fastapi/discussions/6230
+- https://github.com/wbolster/plyvel/issues/27
+- https://github.com/baking-bad/pytezos/issues/284
+- https://github.com/pydantic/pydantic/releases/tag/v1.10.0a1
 
 ### Poetry (package manager) incompatibility
 
-Some libraries depend on eachother to 
+Same as above + some Aleph packages do not have a proper definition on Pipfile :
+- https://github.com/aleph-im/aleph-client/pull/100
 
 ### Mac M1 : Fix errors on Pyvel (if using Brew)
 
